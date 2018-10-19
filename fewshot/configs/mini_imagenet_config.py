@@ -47,7 +47,7 @@ class BasicConfig(object):
     self.learn_rate = 1e-3
     self.normalization = "batch_norm"
     self.lr_scheduler = "fixed"
-    self.max_train_steps = 200000
+    self.max_train_steps = 100000
     self.lr_decay_steps = list(range(0, self.max_train_steps, 25000)[1:])
     self.lr_list = list(
         map(lambda x: self.learn_rate * (0.5)**x, range(

@@ -6,7 +6,6 @@ CONFIG_REGISTRY = {}
 
 def RegisterConfig(dataset_name, model_name):
   """Registers a configuration."""
-
   def decorator(f):
     key = "{}_{}".format(dataset_name, model_name)
     CONFIG_REGISTRY[key] = f
