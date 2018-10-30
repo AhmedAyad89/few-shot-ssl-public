@@ -74,6 +74,7 @@ import os
 import numpy as np
 import six
 import tensorflow as tf
+from tensorflow.python import debug as tf_debug
 
 from fewshot.configs.config_factory import get_config
 from fewshot.configs.mini_imagenet_config import *
@@ -89,6 +90,7 @@ from fewshot.models.basic_model import BasicModel
 from fewshot.models.kmeans_refine_mask_model import KMeansRefineMaskModel
 from fewshot.models.kmeans_refine_model import KMeansRefineModel
 from fewshot.models.kmeans_refine_radius_model import KMeansRefineRadiusModel
+from fewshot.models.basic_model_VAT import BasicModelVAT
 from fewshot.models.measure import batch_apk
 from fewshot.models.model_factory import get_model
 from fewshot.utils import logger
@@ -238,6 +240,8 @@ def train(sess,
   saver = tf.train.Saver()
   save_folder = os.path.join(FLAGS.results, exp_id)
   save_config(config, save_folder)
+  train_writer = tf.summary.FileWriter(os.path.join(save_folder, 'graph'), sess.graph)
+
   if log_results:
     logs_folder = os.path.join("logs", exp_id)
     exp_logger = ExperimentLogger(logs_folder)
@@ -247,7 +251,8 @@ def train(sess,
   val_acc = 0.0
   lr = lr_scheduler.lr
   for niter in it:
-    lr_scheduler.step(niter)
+    with tf.name_scope('Lr-step'):
+      lr_scheduler.step(niter)
     dataset = meta_dataset.next()
     batch = dataset.next_batch()
     batch = preprocess_batch(batch)
@@ -264,8 +269,9 @@ def train(sess,
       else:
         feed_dict[model.x_unlabel] = batch.x_test
 
-    loss_val, y_pred, _ = sess.run(
-        [model.loss, model.prediction, model.train_op], feed_dict=feed_dict)
+    loss_val, y_pred, _, summary = sess.run(
+        [model.loss, model.prediction, model.train_op, model.merged_summary], feed_dict=feed_dict)
+    train_writer.add_summary(summary, niter)
 
     if (niter + 1) % config.steps_per_valid == 0 and run_eval:
       train_results = evaluate(sess, mvalid, meta_dataset)

@@ -97,3 +97,11 @@ class KMeansRefineDistractorMSV3Config(BasicConfig):
     self.name = "mini-imagenet_kmeans-refine-mask"
     self.model_class = "kmeans-refine-mask"
     self.num_cluster_steps = 1
+
+@RegisterConfig("mini-imagenet", "basic-VAT")
+class BasicVAT(BasicConfig):
+
+  def __init__(self):
+    super(BasicVAT, self).__init__()
+    self.name = "mini-imagenet_basic-VAT"
+    self.model_class = "basic-VAT"

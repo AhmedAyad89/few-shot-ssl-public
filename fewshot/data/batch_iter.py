@@ -39,6 +39,7 @@ class BatchIterator(IBatchIterator):
                shuffle=True,
                stagnant=False,
                seed=2,
+               dataseed=2,
                num_batches=-1):
     """Construct a batch iterator.
         Args:

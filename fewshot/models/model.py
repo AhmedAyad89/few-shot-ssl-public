@@ -27,6 +27,7 @@ Author: Mengye Ren (mren@cs.toronto.edu)
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import os
 import numpy as np
 import tensorflow as tf
 from fewshot.models.nnlib import cnn, concat
@@ -63,43 +64,47 @@ class Model(object):
     self._nway = nway
     self._num_test = num_test
     self._is_training = is_training
-
+    self.summaries = []
     height = config.height
     width = config.width
     channels = config.num_channel
+    with tf.name_scope('Model-vars'):
+      # Train images.
+      self._x_train = tf.placeholder(
+          dtype, [None, None, height, width, channels], name="x_train")
 
-    # Train images.
-    self._x_train = tf.placeholder(
-        dtype, [None, None, height, width, channels], name="x_train")
+      # Test images.
+      self._x_test = tf.placeholder(
+          dtype, [None, None, height, width, channels], name="x_test")
 
-    # Test images.
-    self._x_test = tf.placeholder(
-        dtype, [None, None, height, width, channels], name="x_test")
+      self._y_train = tf.placeholder(tf.int64, [None, None], name="y_train")
 
-    self._y_train = tf.placeholder(tf.int64, [None, None], name="y_train")
+      # Whether the candidate is relevant.
+      self._y_test = tf.placeholder(tf.int64, [None, None], name="y_test")
 
-    # Whether the candidate is relevant.
-    self._y_test = tf.placeholder(tf.int64, [None, None], name="y_test")
-
-    if self._nway > 1:
-      self._y_train_one_hot = tf.one_hot(self._y_train, self._nway)
-      self._y_test_one_hot = tf.one_hot(self._y_test, self._nway)
+      if self._nway > 1:
+        self._y_train_one_hot = tf.one_hot(self._y_train, self._nway)
+        self._y_test_one_hot = tf.one_hot(self._y_test, self._nway)
 
     # Learning rate.
-    self._learn_rate = tf.get_variable(
-        "learn_rate", shape=[], initializer=tf.constant_initializer(0.0))
-    self._new_lr = tf.placeholder(dtype, [], name="new_lr")
-    self._assign_lr = tf.assign(self._learn_rate, self._new_lr)
+    with tf.name_scope('Model-LR'):
+      self._learn_rate = tf.get_variable(
+          "learn_rate", shape=[], initializer=tf.constant_initializer(0.0))
+      self._new_lr = tf.placeholder(dtype, [], name="new_lr")
+      self._assign_lr = tf.assign(self._learn_rate, self._new_lr)
     self._embedding_weights = None
 
     # Predition.
     self._logits = self.predict()
 
     # Output.
-    self.compute_output()
+    with tf.name_scope('Compute-Output'):
+      self.compute_output()
 
     if is_training:
-      self._loss, self._train_op = self.get_train_op(self.logits, self.y_test)
+      with tf.name_scope('Training-Op'):
+        self._loss, self._train_op = self.get_train_op(self.logits, self.y_test)
+        self.merged_summary = tf.summary.merge(self.summaries, 'train summaries')
 
   def predict(self):
     """Build inference graph. To be implemented by sub models.
@@ -133,7 +138,7 @@ class Model(object):
     """
     raise NotImplemented()
 
-  def phi(self, x, ext_wts=None, reuse=None):
+  def phi(self, x, ext_wts=None, reuse=tf.AUTO_REUSE): #AYAD
     """Feature extraction function.
     Args:
       x: [N, H, W, C]. Input.
@@ -266,3 +271,4 @@ class Model(object):
   @property
   def embedding_weights(self):
     return self._embedding_weights
+

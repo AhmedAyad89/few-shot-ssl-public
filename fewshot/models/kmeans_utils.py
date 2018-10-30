@@ -38,10 +38,11 @@ def compute_logits(cluster_centers, data):
   Returns:
     log_prob: [B, N, K] logits.
   """
-  cluster_centers = tf.expand_dims(cluster_centers, 1)  # [B, 1, K, D]
-  data = tf.expand_dims(data, 2)  # [B, N, 1, D]
-  # [B, N, K]
-  neg_dist = -tf.reduce_sum(tf.square(data - cluster_centers), [-1])
+  with tf.name_scope('Kmeans-compute-logits'):
+    cluster_centers = tf.expand_dims(cluster_centers, 1)  # [B, 1, K, D]
+    data = tf.expand_dims(data, 2)  # [B, N, 1, D]
+    # [B, N, K]
+    neg_dist = -tf.reduce_sum(tf.square(data - cluster_centers), [-1])
   return neg_dist
 
 
