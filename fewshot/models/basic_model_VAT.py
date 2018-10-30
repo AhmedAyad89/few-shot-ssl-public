@@ -20,23 +20,21 @@ log = logger.get()
 
 @RegisterModel("basic-VAT")
 class BasicModelVAT(RefineModel):
+
 	def get_train_op(self, logits, y_test):
 		loss, train_op = super().get_train_op(logits, y_test)
 		config = self.config
-		x_unlabel = tf.reshape(self.x_unlabel,
-                       [-1, config.height, config.width, config.num_channel])
+		x_unlabel = tf.reshape(self.x_unlabel, [-1, config.height, config.width, config.num_channel])
 		with tf.control_dependencies([self.protos]):
-			vat_loss = self.virtual_adversarial_loss(x_unlabel, self.predict(VAT_run=True)[0])
-		vat_opt = tf.train.AdamOptimizer(0.4 * self.learn_rate)
-		vat_grads_and_vars = vat_opt.compute_gradients(0.4 * vat_loss)
+			vat_loss = config.VAT_weight * self.virtual_adversarial_loss(x_unlabel, self.predict(VAT_run=True)[0])
+
+		vat_opt = tf.train.AdamOptimizer(self.learn_rate)
+		vat_grads_and_vars = vat_opt.compute_gradients(vat_loss)
 		vat_train_op = vat_opt.apply_gradients(vat_grads_and_vars)
 
 		loss += vat_loss
 		train_op = tf.group(train_op, vat_train_op)
 		return loss, train_op
-
-	def phi_VAT(self, x, reuse=True):
-		return super().phi(x, reuse,  ext_wts=None)
 
 	def generate_virtual_adversarial_perturbation(self, x, logit, is_training=True):
 		# x = tf.Print(x, [tf.shape(x)])

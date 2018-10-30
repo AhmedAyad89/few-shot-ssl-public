@@ -81,6 +81,14 @@ class BasicPretrainConfig(BasicConfig):
     self.steps_per_log = 10
     self.steps_per_save = 10
 
+@RegisterConfig("omniglot", "basic-VAT")
+class BasicVATConfig(BasicConfig):
+
+  def __init__(self):
+    super(BasicVATConfig, self).__init__()
+    self.name = "omniglot_basic-VAT"
+    self.model_class = "basic-VAT"
+    self.VAT_weight = 0.4
 
 @RegisterConfig("omniglot", "kmeans-refine")
 class KMeansRefineConfig(BasicConfig):
