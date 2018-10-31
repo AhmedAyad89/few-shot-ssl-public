@@ -14,7 +14,6 @@ from fewshot.utils import logger
 from fewshot.utils.debug import debug_identity
 from fewshot.models.VAT_utils import *
 
-FLAGS = tf.flags.FLAGS
 
 log = logger.get()
 
@@ -24,11 +23,12 @@ class BasicModelVAT(RefineModel):
 	def get_train_op(self, logits, y_test):
 		loss, train_op = super().get_train_op(logits, y_test)
 		config = self.config
+		VAT_weight = config.VAT_weight
 		x_unlabel = tf.reshape(self.x_unlabel, [-1, config.height, config.width, config.num_channel])
 		with tf.control_dependencies([self.protos]):
-			vat_loss = config.VAT_weight * self.virtual_adversarial_loss(x_unlabel, self.predict(VAT_run=True)[0])
+			vat_loss =self.virtual_adversarial_loss(x_unlabel, self.predict(VAT_run=True)[0])
 
-		vat_opt = tf.train.AdamOptimizer(self.learn_rate)
+		vat_opt = tf.train.AdamOptimizer(VAT_weight * self.learn_rate)
 		vat_grads_and_vars = vat_opt.compute_gradients(vat_loss)
 		vat_train_op = vat_opt.apply_gradients(vat_grads_and_vars)
 
@@ -40,15 +40,15 @@ class BasicModelVAT(RefineModel):
 		# x = tf.Print(x, [tf.shape(x)])
 		with tf.name_scope('Gen-adv-perturb'):
 			d = tf.random_normal(shape=tf.shape(x))
-			for _ in range(FLAGS.num_power_iterations):
-				d = FLAGS.xi * get_normalized_vector(d)
+			for _ in range(FLAGS.VAT_num_power_iterations):
+				d = FLAGS.VAT_xi * get_normalized_vector(d)
 				logit_p = logit
 				logit_m = self.predict(True, eps=d)[0]
 				dist = kl_divergence_with_logit(logit_p, logit_m)
 				self.summaries.append(tf.summary.scalar('VAT-loss', dist))
 				grad = tf.gradients(dist, [d], aggregation_method=2, name='Adv-grads')[0]
 				d = tf.stop_gradient(grad)
-			return FLAGS.epsilon * get_normalized_vector(d)
+			return FLAGS.VAT_epsilon * get_normalized_vector(d)
 
 	def virtual_adversarial_loss(self, x, logit, is_training=True, name="vat_loss"):
 		with tf.name_scope('VAT'):

@@ -110,11 +110,13 @@ flags.DEFINE_integer("nshot", 1, "nshot")
 flags.DEFINE_integer("num_eval_episode", 600, "Number of evaluation episodes")
 flags.DEFINE_integer("num_test", -1, "Number of test images per episode")
 flags.DEFINE_integer("num_unlabel", 5, "Number of unlabeled for training")
+flags.DEFINE_integer("steps_per_summary", 100, "Number of steps between summary ops")
 flags.DEFINE_integer("seed", 0, "Random seed")
 flags.DEFINE_string("dataset", "omniglot", "Dataset name")
 flags.DEFINE_string("model", "basic", "Model name")
 flags.DEFINE_string("pretrain", None, "Model pretrain path")
 flags.DEFINE_string("results", "./results", "Checkpoint save path")
+
 FLAGS = tf.flags.FLAGS
 log = logger.get()
 
@@ -216,6 +218,10 @@ def save_config(config, save_folder):
   config_file = os.path.join(save_folder, "conf.json")
   with open(config_file, "w") as f:
     f.write(json.dumps(dict(config.__dict__)))
+  flag_file = os.path.join(save_folder, "flags.json")
+  with open(flag_file, "w") as f:
+    f.write(json.dumps(dict(FLAGS.flag_values_dict())))
+
 
 
 def train(sess,
@@ -225,6 +231,7 @@ def train(sess,
           mvalid=None,
           meta_val_dataset=None,
           log_results=True,
+          summarize=True,
           run_eval=True,
           exp_id=None):
   lr_scheduler = FixedLearnRateScheduler(
@@ -269,9 +276,13 @@ def train(sess,
       else:
         feed_dict[model.x_unlabel] = batch.x_test
 
-    loss_val, y_pred, _, summary = sess.run(
-        [model.loss, model.prediction, model.train_op, model.merged_summary], feed_dict=feed_dict)
-    train_writer.add_summary(summary, niter)
+    if (niter + 1) % FLAGS.steps_per_summary == 0 and summarize:
+      loss_val, y_pred, _, summary = sess.run(
+          [model.loss, model.prediction, model.train_op, model.merged_summary], feed_dict=feed_dict)
+      train_writer.add_summary(summary, niter)
+    else:
+      loss_val, y_pred, _ = sess.run(
+        [model.loss, model.prediction, model.train_op], feed_dict=feed_dict)
 
     if (niter + 1) % config.steps_per_valid == 0 and run_eval:
       train_results = evaluate(sess, mvalid, meta_dataset)
