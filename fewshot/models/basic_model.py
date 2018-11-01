@@ -44,6 +44,7 @@ from fewshot.models.nnlib import (concat, weight_variable)
 from fewshot.utils import logger
 from fewshot.utils.debug import debug_identity
 
+l2_norm = lambda t: tf.sqrt(tf.reduce_sum(tf.pow(t, 2)))
 FLAGS = tf.flags.FLAGS
 log = logger.get()
 
@@ -98,6 +99,9 @@ class BasicModel(Model):
         protos[kk] /= tf.reduce_sum(ksel, [1, 2], keep_dims=True)
         protos[kk] = debug_identity(protos[kk], "proto")
       protos = concat(protos, 1)  # [B, K, D]
+      self.adv_summaries.append(tf.summary.scalar('Proto means', tf.norm(protos, axis=0)))
+      self.adv_summaries.append(tf.summary.scalar('Proto means', tf.norm(protos, axis=1)))
+
     return protos
 
   def predict(self):
@@ -141,5 +145,11 @@ class BasicModel(Model):
     opt = tf.train.AdamOptimizer(self.learn_rate)
     grads_and_vars = opt.compute_gradients(loss)
     train_op = opt.apply_gradients(grads_and_vars)
+    for gradient, variable in grads_and_vars:
+      if gradient is None:
+        gradient=tf.constant(0.0)
+      self.adv_summaries.append(tf.summary.scalar("gradients/" + variable.name, l2_norm(gradient)))
+      self.adv_summaries.append(tf.summary.scalar("variables/" + variable.name, l2_norm(variable)))
+      self.adv_summaries.append(tf.summary.histogram("gradients/" + variable.name, gradient))
 
     return loss, train_op

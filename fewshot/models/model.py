@@ -64,7 +64,8 @@ class Model(object):
     self._nway = nway
     self._num_test = num_test
     self._is_training = is_training
-    self.summaries = []
+    self.summaries = []         #Basic scalar summaries like losses
+    self.adv_summaries = []     #More expensive/informative summaries about weights, gradients and activations
     height = config.height
     width = config.width
     channels = config.num_channel
@@ -105,6 +106,7 @@ class Model(object):
       with tf.name_scope('Training-Op'):
         self._loss, self._train_op = self.get_train_op(self.logits, self.y_test)
         self.merged_summary = tf.summary.merge(self.summaries, 'train summaries')
+        self.merged_adv_summary = tf.summary.merge(self.adv_summaries, 'Advanced summaries')
 
   def predict(self):
     """Build inference graph. To be implemented by sub models.
@@ -171,6 +173,7 @@ class Model(object):
       for ss in h_shape[1:]:
         h_size *= int(ss)
       h = tf.reshape(h, [-1, h_size])
+      self.adv_summaries.append(tf.summary.histogram('Encoded', h ))
     return h
 
   def assign_lr(self, sess, value):

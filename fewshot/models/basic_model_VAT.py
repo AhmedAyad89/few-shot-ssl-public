@@ -14,7 +14,7 @@ from fewshot.utils import logger
 from fewshot.utils.debug import debug_identity
 from fewshot.models.VAT_utils import *
 
-
+l2_norm = lambda t: tf.sqrt(tf.reduce_sum(tf.pow(t, 2)))
 log = logger.get()
 
 @RegisterModel("basic-VAT")
@@ -31,6 +31,13 @@ class BasicModelVAT(RefineModel):
 		vat_opt = tf.train.AdamOptimizer(VAT_weight * self.learn_rate)
 		vat_grads_and_vars = vat_opt.compute_gradients(vat_loss)
 		vat_train_op = vat_opt.apply_gradients(vat_grads_and_vars)
+
+		for gradient, variable in vat_grads_and_vars:
+			if gradient is None:
+				gradient = tf.constant(0.0)
+			self.adv_summaries.append(tf.summary.scalar("VAT/gradients/" + variable.name, l2_norm(gradient)))
+			self.adv_summaries.append(tf.summary.histogram("VAT/gradients/" + variable.name, gradient))
+
 
 		loss += vat_loss
 		train_op = tf.group(train_op, vat_train_op)
@@ -53,7 +60,6 @@ class BasicModelVAT(RefineModel):
 	def virtual_adversarial_loss(self, x, logit, is_training=True, name="vat_loss"):
 		with tf.name_scope('VAT'):
 			r_vadv = self.generate_virtual_adversarial_perturbation(x, logit, is_training=is_training)
-			self.summaries.append(tf.summary.histogram('adv-norm', r_vadv))
 			logit = tf.stop_gradient(logit)
 			logit_p = logit
 			logit_m = self.predict(True, eps=r_vadv)[0]
@@ -68,11 +74,7 @@ class BasicModelVAT(RefineModel):
 			with tf.name_scope('VAT-predict'):
 				inp = tf.add(self.x_unlabel, eps)
 				h_unlbl = self.get_encoded_inputs(inp)[0]
-				# h_unlbl_v = self.get_encoded_inputs(self.x_unlabel)[0]
-				# h_unlbl = tf.Print(h_unlbl, [h_unlbl-h_unlbl_v], '++++\n', summarize=50)
-				# h_unlbl = tf.Print(h_unlbl,[inp-self.x_unlabel, tf.reduce_sum(h_unlbl-h_unlbl_v),
-				# 										tf.reduce_sum(inp-self.x_unlabel)],
-				# 									 	'x_unlabel, h_unlabel-h_unlabel_v, ')
+
 				logits = compute_logits(self.protos, h_unlbl)
 		else:
 			with tf.name_scope('Predict'):

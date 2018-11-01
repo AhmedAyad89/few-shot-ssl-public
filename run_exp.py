@@ -277,9 +277,10 @@ def train(sess,
         feed_dict[model.x_unlabel] = batch.x_test
 
     if (niter + 1) % FLAGS.steps_per_summary == 0 and summarize:
-      loss_val, y_pred, _, summary = sess.run(
-          [model.loss, model.prediction, model.train_op, model.merged_summary], feed_dict=feed_dict)
+      loss_val, y_pred, _, summary, adv_summary = sess.run(
+          [model.loss, model.prediction, model.train_op, model.merged_summary, model.merged_adv_summary], feed_dict=feed_dict)
       train_writer.add_summary(summary, niter)
+      train_writer.add_summary(adv_summary,niter)
     else:
       loss_val, y_pred, _ = sess.run(
         [model.loss, model.prediction, model.train_op], feed_dict=feed_dict)
