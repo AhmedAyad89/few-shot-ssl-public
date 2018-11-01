@@ -99,8 +99,7 @@ class BasicModel(Model):
         protos[kk] /= tf.reduce_sum(ksel, [1, 2], keep_dims=True)
         protos[kk] = debug_identity(protos[kk], "proto")
       protos = concat(protos, 1)  # [B, K, D]
-      self.adv_summaries.append(tf.summary.scalar('Proto means', tf.norm(protos, axis=0)))
-      self.adv_summaries.append(tf.summary.scalar('Proto means', tf.norm(protos, axis=1)))
+      self.adv_summaries.append(tf.summary.histogram('Proto means', tf.norm(tf.squeeze(protos), axis=1)))
 
     return protos
 
