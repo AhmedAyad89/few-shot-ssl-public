@@ -44,7 +44,7 @@ class BasicConfig(object):
     self.conv_init_method = None
     self.conv_init_std = [1.0e-2] * 4
     self.wd = 5e-5
-    self.learn_rate = 1e-3
+    self.learn_rate = 1e-4
     self.normalization = "batch_norm"
     self.lr_scheduler = "fixed"
     self.max_train_steps = 100000
@@ -105,4 +105,4 @@ class BasicVAT(BasicConfig):
     super(BasicVAT, self).__init__()
     self.name = "mini-imagenet_basic-VAT"
     self.model_class = "basic-VAT"
-    self.VAT_weight = 0.9
+    self.VAT_weight = 0.6

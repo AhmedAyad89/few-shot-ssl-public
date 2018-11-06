@@ -115,6 +115,7 @@ flags.DEFINE_integer("seed", 0, "Random seed")
 flags.DEFINE_string("dataset", "omniglot", "Dataset name")
 flags.DEFINE_string("model", "basic", "Model name")
 flags.DEFINE_string("pretrain", None, "Model pretrain path")
+flags.DEFINE_bool("continue_train", False, "Model pretrain path, model trained further")
 flags.DEFINE_string("results", "./results", "Checkpoint save path")
 
 FLAGS = tf.flags.FLAGS
@@ -379,6 +380,8 @@ def main():
           os.path.join(FLAGS.results, FLAGS.pretrain))
       saver = tf.train.Saver()
       saver.restore(sess, ckpt)
+      if FLAGS.continue_train:
+        train(sess, config, m, meta_train_dataset, mvalid, meta_test_dataset)
     else:
       sess.run(tf.global_variables_initializer())
       train(sess, config, m, meta_train_dataset, mvalid, meta_test_dataset)
