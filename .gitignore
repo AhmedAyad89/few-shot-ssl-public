@@ -71,7 +71,7 @@ target/
 .ipynb_checkpoints
 
 # pycharm
-.idea
+.idea/
 
 # pyenv
 .python-version
