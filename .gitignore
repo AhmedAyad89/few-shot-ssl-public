@@ -104,3 +104,5 @@ ENV/
 
 logs/
 results/
+
+.idea/
