@@ -70,8 +70,7 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# pycharm
-.idea/
+
 
 # pyenv
 .python-version
@@ -102,3 +101,6 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+logs/
+results/

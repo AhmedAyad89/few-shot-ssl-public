@@ -73,9 +73,9 @@ class BasicModelVAT(RefineModel):
 		if VAT_run:
 			with tf.name_scope('VAT-predict'):
 				inp = tf.add(self.x_unlabel, eps)
-				h_unlbl = self.get_encoded_inputs(inp)[0]
-
-				logits = compute_logits(self.protos, h_unlbl)
+				h_unlbl = self.get_encoded_inputs(inp, VAT=True)[0]
+				d = self.protos
+				logits = compute_logits(d, h_unlbl)
 		else:
 			with tf.name_scope('Predict'):
 				h_train, h_test = self.get_encoded_inputs(self.x_train, self.x_test)

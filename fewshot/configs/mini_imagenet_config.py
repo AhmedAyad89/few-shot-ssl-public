@@ -105,4 +105,4 @@ class BasicVAT(BasicConfig):
     super(BasicVAT, self).__init__()
     self.name = "mini-imagenet_basic-VAT"
     self.model_class = "basic-VAT"
-    self.VAT_weight = 0.6
+    self.VAT_weight = 0.7

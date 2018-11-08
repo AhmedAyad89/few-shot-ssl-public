@@ -140,7 +140,7 @@ class Model(object):
     """
     raise NotImplemented()
 
-  def phi(self, x, ext_wts=None, reuse=tf.AUTO_REUSE): #AYAD
+  def phi(self, x, ext_wts=None, reuse=tf.AUTO_REUSE, VAT=False): #AYAD
     """Feature extraction function.
     Args:
       x: [N, H, W, C]. Input.
@@ -165,7 +165,8 @@ class Model(object):
           dtype=dtype,
           batch_norm=True,
           is_training=is_training,
-          ext_wts=ext_wts)
+          ext_wts=ext_wts,
+          VAT=VAT)
       if self._embedding_weights is None:
         self._embedding_weights = wts
       h_shape = h.get_shape()

@@ -65,6 +65,9 @@ class BasicModel(Model):
       ext_wts = kwargs['ext_wts']
     else:
       ext_wts = None
+    VAT = False
+    if 'VAT' in kwargs:
+      VAT = kwargs['VAT']
     config = self.config
     bsize = tf.shape(self.x_train)[0]
     bsize = tf.shape(x_list[0])[0]
@@ -72,7 +75,7 @@ class BasicModel(Model):
     x_all = concat(x_list, 1)
     x_all = tf.reshape(x_all,
                        [-1, config.height, config.width, config.num_channel])
-    h_all = self.phi(x_all, ext_wts=ext_wts)
+    h_all = self.phi(x_all, ext_wts=ext_wts, VAT=VAT)
     tf.assert_greater(tf.reduce_mean(tf.abs(h_all)), 0.0)
     # h_all_p = self.phi(tf.random_normal(tf.shape(x_all)), ext_wts=ext_wts)
     # h_all = tf.Print(h_all, [tf.reduce_sum(h_all),tf.reduce_sum(h_all - h_all_p)], '\n-----------')
