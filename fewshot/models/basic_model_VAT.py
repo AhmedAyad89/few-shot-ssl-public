@@ -35,8 +35,8 @@ class BasicModelVAT(RefineModel):
 		for gradient, variable in vat_grads_and_vars:
 			if gradient is None:
 				gradient = tf.constant(0.0)
-			self.adv_summaries.append(tf.summary.scalar("VAT/gradients/" + variable.name, l2_norm(gradient)))
-			self.adv_summaries.append(tf.summary.histogram("VAT/gradients/" + variable.name, gradient))
+			self.adv_summaries.append(tf.summary.scalar("VAT/gradients/" + variable.name, l2_norm(gradient), collections="Grads"))
+			self.adv_summaries.append(tf.summary.histogram("VAT/gradients/" + variable.name, gradient, collections="Grads"))
 
 
 		loss += vat_loss

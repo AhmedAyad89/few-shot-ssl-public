@@ -91,6 +91,7 @@ from fewshot.models.kmeans_refine_mask_model import KMeansRefineMaskModel
 from fewshot.models.kmeans_refine_model import KMeansRefineModel
 from fewshot.models.kmeans_refine_radius_model import KMeansRefineRadiusModel
 from fewshot.models.basic_model_VAT import BasicModelVAT
+from fewshot.models.basic_model_VAT_ENT import BasicModelVAT_ENT
 from fewshot.models.measure import batch_apk
 from fewshot.models.model_factory import get_model
 from fewshot.utils import logger

@@ -88,7 +88,17 @@ class BasicVATConfig(BasicConfig):
     super(BasicVATConfig, self).__init__()
     self.name = "omniglot_basic-VAT"
     self.model_class = "basic-VAT"
-    self.VAT_weight = 1.5
+    self.VAT_weight = 1.0
+
+@RegisterConfig("omniglot", "basic-VAT-ENT")
+class BasicVAT_ENTConfig(BasicVATConfig):
+  def __init__(self):
+    super(BasicVAT_ENTConfig, self).__init__()
+    self.name = "omniglot_basic-VAT-ENT"
+    self.model_class = "basic-VAT-ENT"
+    self.ENT_weight = 4.0
+    self.max_train_steps = 30000
+
 
 @RegisterConfig("omniglot", "kmeans-refine")
 class KMeansRefineConfig(BasicConfig):

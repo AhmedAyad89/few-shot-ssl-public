@@ -3,10 +3,13 @@ import numpy
 import sys, os
 
 FLAGS = tf.flags.FLAGS
-tf.app.flags.DEFINE_float('VAT_epsilon', 8.0, "norm length for (virtual) adversarial training ")
+tf.app.flags.DEFINE_float('VAT_epsilon', 18.0, "norm length for (virtual) adversarial training ")
 tf.app.flags.DEFINE_integer('VAT_num_power_iterations', 1, "the number of power iterations")
 tf.app.flags.DEFINE_float('VAT_xi', 1e-2, "small constant for finite difference")
 
+def entropy_y_x(logit):
+    p = tf.nn.softmax(logit)
+    return -tf.reduce_mean(tf.reduce_sum(p * logsoftmax(logit), 1))
 
 def logsoftmax(x):
     with tf.name_scope('Log-of-Softmax'):

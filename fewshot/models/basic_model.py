@@ -102,7 +102,7 @@ class BasicModel(Model):
         protos[kk] /= tf.reduce_sum(ksel, [1, 2], keep_dims=True)
         protos[kk] = debug_identity(protos[kk], "proto")
       protos = concat(protos, 1)  # [B, K, D]
-      self.adv_summaries.append(tf.summary.histogram('Proto means', tf.norm(tf.squeeze(protos), axis=1)))
+      self.adv_summaries.append(tf.summary.histogram('Proto norms', tf.norm(tf.squeeze(protos), axis=1)))
 
     return protos
 
@@ -150,8 +150,8 @@ class BasicModel(Model):
     for gradient, variable in grads_and_vars:
       if gradient is None:
         gradient=tf.constant(0.0)
-      self.adv_summaries.append(tf.summary.scalar("gradients/" + variable.name, l2_norm(gradient)))
-      self.adv_summaries.append(tf.summary.scalar("variables/" + variable.name, l2_norm(variable)))
-      self.adv_summaries.append(tf.summary.histogram("gradients/" + variable.name, gradient))
+      self.adv_summaries.append(tf.summary.scalar("gradients/" + variable.name, l2_norm(gradient), collections="Grads"))
+      self.adv_summaries.append(tf.summary.scalar("variables/" + variable.name, l2_norm(variable), collections="VARS"))
+      self.adv_summaries.append(tf.summary.histogram("gradients/" + variable.name, gradient, collections="Grads"))
 
     return loss, train_op
