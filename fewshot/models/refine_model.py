@@ -39,6 +39,8 @@ import tensorflow as tf
 from fewshot.models.nnlib import cnn, weight_variable, concat
 from fewshot.models.basic_model import BasicModel
 from fewshot.utils import logger
+from fewshot.models.model_factory import RegisterModel
+
 log = logger.get()
 
 # Load up the LSTM cell implementation.
@@ -49,7 +51,7 @@ else:
   BasicLSTMCell = tf.contrib.rnn.BasicLSTMCell
   LSTMStateTuple = tf.contrib.rnn.LSTMStateTuple
 
-
+@RegisterModel("refine")
 class RefineModel(BasicModel):
   """A retrieval model with an additional refinement stage."""
 
@@ -75,6 +77,7 @@ class RefineModel(BasicModel):
     self._x_unlabel = tf.placeholder(
         dtype, [None, None, config.height, config.width, config.num_channel],
         name="x_unlabel")
+    self.x_unlabel_flat = tf.reshape(self.x_unlabel, [-1, config.height, config.width, config.num_channel] )
     self._y_unlabel = tf.placeholder(dtype, [None, None], name="y_unlabel")
     super(RefineModel, self).__init__(
         config,
@@ -84,6 +87,14 @@ class RefineModel(BasicModel):
         is_training=is_training,
         dtype=dtype)
 
+  def init_episode_classifier(self):
+    super(RefineModel, self).init_episode_classifier()
+    self._h_unlabel = self.phi(self.x_unlabel_flat, update_batch_stats=False)
+
+  def get_train_op(self, logits, y_test):
+    return super().get_train_op(logits, y_test)
+
+
   @property
   def x_unlabel(self):
     return self._x_unlabel
@@ -92,6 +103,9 @@ class RefineModel(BasicModel):
   def y_unlabel(self):
     return self._y_unlabel
 
+  @property
+  def h_unlabel(self):
+    return self._h_unlabel
 
 if __name__ == "__main__":
   from fewshot.configs.omniglot_config import OmniglotRefineConfig

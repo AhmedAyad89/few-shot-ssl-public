@@ -17,7 +17,6 @@ from fewshot.models.VAT_utils import *
 l2_norm = lambda t: tf.sqrt(tf.reduce_sum(tf.pow(t, 2)))
 log = logger.get()
 
-ENT_weight=0.5
 
 @RegisterModel("basic-VAT-ENT")
 class BasicModelVAT_ENT(BasicModelVAT):
@@ -26,9 +25,8 @@ class BasicModelVAT_ENT(BasicModelVAT):
 		config = self.config
 		ENT_weight = config.ENT_weight
 
-		unlbl_logits = self.predict(VAT_run=True)[0]
-		ENT_loss = entropy_y_x(unlbl_logits)
-		ENT_opt = tf.train.AdamOptimizer(ENT_weight * self.learn_rate)
+		ENT_loss = entropy_y_x(self._unlabel_logits)
+		ENT_opt = tf.train.AdamOptimizer(ENT_weight * self.learn_rate, name="Entropy-optimizer")
 		ENT_grads_and_vars = ENT_opt.compute_gradients(ENT_loss)
 		ENT_train_op = ENT_opt.apply_gradients(ENT_grads_and_vars)
 

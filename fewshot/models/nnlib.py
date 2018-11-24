@@ -135,7 +135,7 @@ def cnn(x,
 				trainable=True,
 				is_training=True,
 				keep_ema=False,
-				VAT=False,
+				update_batch_stats=False,
 				ext_wts=None):
 	"""Builds a convolutional neural networks.
 	Each layer contains the following operations:
@@ -267,7 +267,7 @@ def cnn(x,
 					if is_training:
 						decay = 0.9
 						mean, var = tf.nn.moments(h, [0, 1, 2], name="moments")
-						if assign_ema and VAT is False:
+						if assign_ema and update_batch_stats is False:
 							ema_mean_op = tf.assign_sub(emean, (emean - mean) * (1 - decay))
 							ema_var_op = tf.assign_sub(evar, (evar - var) * (1 - decay))
 							with tf.control_dependencies([ema_mean_op, ema_var_op]):
@@ -303,6 +303,7 @@ def cnn(x,
 					_width = int(h.get_shape()[2])
 					log.info("After pool {} {}".format(_height, _width))
 	return h, wt_dict
+
 
 
 def mlp(x,

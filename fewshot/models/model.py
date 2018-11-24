@@ -33,6 +33,8 @@ import tensorflow as tf
 from fewshot.models.nnlib import cnn, concat
 from fewshot.models.measure import batch_apk, apk
 from fewshot.utils import logger
+from fewshot.utils.debug import debug_identity
+
 
 flags = tf.flags
 flags.DEFINE_bool("allstep", False,
@@ -48,6 +50,8 @@ class Model(object):
       of whether the candidate images are relevant.
     2) get_train_op: Given the computed logits and groundtruth mask, compute
       the loss and op to optimize the network.
+
+  B:num classes, N:Examples per class, D:Embedding dimension, M:Number of test images, P:Num unlabelled
   """
 
   def __init__(self,
@@ -93,11 +97,9 @@ class Model(object):
           "learn_rate", shape=[], initializer=tf.constant_initializer(0.0))
       self._new_lr = tf.placeholder(dtype, [], name="new_lr")
       self._assign_lr = tf.assign(self._learn_rate, self._new_lr)
+
     self._embedding_weights = None
-
-    # Predition.
-    self._logits = self.predict()
-
+    self.predict()
     # Output.
     with tf.name_scope('Compute-Output'):
       self.compute_output()
@@ -108,6 +110,46 @@ class Model(object):
         self.merged_summary = tf.summary.merge(self.summaries, 'train summaries')
         self.merged_adv_summary = tf.summary.merge(self.adv_summaries, 'Advanced summaries')
 
+  def init_episode_classifier(self):
+    """"
+    Runs the reference and candidate images through the feature model phi.
+    Computes prototypes
+    h_train: [B, N, D]
+    h_unlabel: [B, P, D]
+    h_test: [B, M, D]
+    """
+    with tf.name_scope('Init-Episode_classifier'):
+      with tf.name_scope('encode'):
+        self._h_train, self._h_test = self.encode(self.x_train, self.x_test)
+      y_train = self.y_train
+      nclasses = self.nway
+      self._protos = self._compute_protos(nclasses, self.h_train, y_train)
+
+  def encode(self, *x_list, **kwargs):
+    """
+    """
+    if 'ext_wts' in kwargs:
+      ext_wts = kwargs['ext_wts']
+    else:
+      ext_wts = None
+    update_batch_stats = False
+    if 'update_batch_stats' in kwargs:
+      update_batch_stats = kwargs['update_batch_stats']
+    config = self.config
+    bsize = tf.shape(self.x_train)[0]
+    bsize = tf.shape(x_list[0])[0]
+    num = [tf.shape(xx)[1] for xx in x_list]
+    x_all = concat(x_list, 1)
+    x_all = tf.reshape(x_all,
+                       [-1, config.height, config.width, config.num_channel])
+    h_all = self.phi(x_all, ext_wts=ext_wts, update_batch_stats=update_batch_stats)
+    # tf.assert_greater(tf.reduce_mean(tf.abs(h_all)), 0.0)
+    # h_all_p = self.phi(tf.random_normal(tf.shape(x_all)), ext_wts=ext_wts)
+    # h_all = tf.Print(h_all, [tf.reduce_sum(h_all),tf.reduce_sum(h_all - h_all_p)], '\n-----------')
+    h_all = tf.reshape(h_all, [bsize, sum(num), -1])
+    h_list = tf.split(h_all, num, axis=1)
+    return h_list
+
   def predict(self):
     """Build inference graph. To be implemented by sub models.
     Returns:
@@ -115,6 +157,30 @@ class Model(object):
         reference class.
     """
     raise NotImplemented()
+
+  def _compute_protos(self, nclasses, h_train, y_train):
+    """Computes the prototypes, cluster centers.
+    Args:
+      nclasses: Int. Number of classes.
+      h_train: [B, N, D], Train features.
+      y_train: [B, N], Train class labels.
+    Returns:
+      protos: [B, K, D], Test prediction.
+    """
+    with tf.name_scope('Compute-protos'):
+      protos = [None] * nclasses
+      for kk in range(nclasses):
+        # [B, N, 1]
+        ksel = tf.expand_dims(tf.cast(tf.equal(y_train, kk), h_train.dtype), 2)
+        # [B, N, D]
+        protos[kk] = tf.reduce_sum(h_train * ksel, [1], keep_dims=True)
+        protos[kk] /= tf.reduce_sum(ksel, [1, 2], keep_dims=True)
+        protos[kk] = debug_identity(protos[kk], "proto")
+      protos = concat(protos, 1)  # [B, K, D]
+      self.adv_summaries.append(tf.summary.histogram
+                                ('Proto norms', tf.norm(tf.squeeze(protos), axis=1), family='Protos')) #TODO
+      self.adv_summaries.append(tf.summary.tensor_summary('Proto norms', protos, family='Protos'))
+    return protos
 
   def compute_output(self):
     # Evaluation.
@@ -140,11 +206,12 @@ class Model(object):
     """
     raise NotImplemented()
 
-  def phi(self, x, ext_wts=None, reuse=tf.AUTO_REUSE, VAT=False): #AYAD
+  def phi(self, x, ext_wts=None, reuse=tf.AUTO_REUSE, update_batch_stats=False): #AYAD
     """Feature extraction function.
     Args:
       x: [N, H, W, C]. Input.
       reuse: Whether to reuse variables here.
+
     """
     config = self.config
     is_training = self.is_training
@@ -166,7 +233,7 @@ class Model(object):
           batch_norm=True,
           is_training=is_training,
           ext_wts=ext_wts,
-          VAT=VAT)
+          update_batch_stats=update_batch_stats)
       if self._embedding_weights is None:
         self._embedding_weights = wts
       h_shape = h.get_shape()
@@ -174,7 +241,7 @@ class Model(object):
       for ss in h_shape[1:]:
         h_size *= int(ss)
       h = tf.reshape(h, [-1, h_size])
-      self.adv_summaries.append(tf.summary.histogram('Encoded', h ))
+      self.adv_summaries.append(tf.summary.histogram('Encoded', h , family="phi_out"))
     return h
 
   def assign_lr(self, sess, value):
@@ -235,6 +302,18 @@ class Model(object):
   @property
   def y_test_one_hot(self):
     return self._y_test_one_hot
+
+  @property
+  def h_train(self):
+    return self._h_train
+
+  @property
+  def h_test(self):
+    return self._h_test
+
+  @property
+  def protos(self):
+    return self._protos
 
   @property
   def learn_rate(self):

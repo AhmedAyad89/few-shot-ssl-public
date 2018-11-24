@@ -8,6 +8,7 @@ import tensorflow as tf
 from fewshot.models.kmeans_utils import compute_logits
 from fewshot.models.model import Model
 from fewshot.models.refine_model import RefineModel
+from fewshot.models.model_VAT import ModelVAT
 from fewshot.models.model_factory import RegisterModel
 from fewshot.models.nnlib import (concat, weight_variable)
 from fewshot.utils import logger
@@ -17,71 +18,60 @@ from fewshot.models.VAT_utils import *
 l2_norm = lambda t: tf.sqrt(tf.reduce_sum(tf.pow(t, 2)))
 log = logger.get()
 
+#Vanilla VAT. Noise added to the inputs
 @RegisterModel("basic-VAT")
-class BasicModelVAT(RefineModel):
+class BasicModelVAT(ModelVAT):
 
-	def get_train_op(self, logits, y_test):
-		loss, train_op = super().get_train_op(logits, y_test)
-		config = self.config
-		VAT_weight = config.VAT_weight
-		x_unlabel = tf.reshape(self.x_unlabel, [-1, config.height, config.width, config.num_channel])
-		with tf.control_dependencies([self.protos]):
-			vat_loss =self.virtual_adversarial_loss(x_unlabel, self.predict(VAT_run=True)[0])
-
-		vat_opt = tf.train.AdamOptimizer(VAT_weight * self.learn_rate)
-		vat_grads_and_vars = vat_opt.compute_gradients(vat_loss)
-		vat_train_op = vat_opt.apply_gradients(vat_grads_and_vars)
-
-		for gradient, variable in vat_grads_and_vars:
-			if gradient is None:
-				gradient = tf.constant(0.0)
-			self.adv_summaries.append(tf.summary.scalar("VAT/gradients/" + variable.name, l2_norm(gradient), collections="Grads"))
-			self.adv_summaries.append(tf.summary.histogram("VAT/gradients/" + variable.name, gradient, collections="Grads"))
+	def noisy_forward(self, data, noise, update_batch_stats=False):
+		with tf.name_scope("forward"):
+			encoded = self.phi(data+noise, update_batch_stats=update_batch_stats)
+			logits = compute_logits(self.protos, encoded)
+		return logits
 
 
-		loss += vat_loss
-		train_op = tf.group(train_op, vat_train_op)
-		return loss, train_op
+@RegisterModel("basic-VAT-prototypes")
+class BasicModelVAT_Prototypes(ModelVAT):
+	def __init__(self,
+							 config,
+							 nway=1,
+							 nshot=1,
+							 num_unlabel=10,
+							 candidate_size=10,
+							 is_training=True,
+							 dtype=tf.float32):
 
-	def generate_virtual_adversarial_perturbation(self, x, logit, is_training=True):
-		# x = tf.Print(x, [tf.shape(x)])
-		with tf.name_scope('Gen-adv-perturb'):
-			d = tf.random_normal(shape=tf.shape(x))
-			for _ in range(FLAGS.VAT_num_power_iterations):
-				d = FLAGS.VAT_xi * get_normalized_vector(d)
-				logit_p = logit
-				logit_m = self.predict(True, eps=d)[0]
-				dist = kl_divergence_with_logit(logit_p, logit_m)
-				self.summaries.append(tf.summary.scalar('VAT-loss', dist))
-				grad = tf.gradients(dist, [d], aggregation_method=2, name='Adv-grads')[0]
-				d = tf.stop_gradient(grad)
-			return FLAGS.VAT_epsilon * get_normalized_vector(d)
+		super(BasicModelVAT_Prototypes, self).__init__(config, nway, nshot, num_unlabel,
+																									 candidate_size, is_training, dtype)
 
-	def virtual_adversarial_loss(self, x, logit, is_training=True, name="vat_loss"):
-		with tf.name_scope('VAT'):
-			r_vadv = self.generate_virtual_adversarial_perturbation(x, logit, is_training=is_training)
-			logit = tf.stop_gradient(logit)
-			logit_p = logit
-			logit_m = self.predict(True, eps=r_vadv)[0]
-			loss = kl_divergence_with_logit(logit_p, logit_m)
-			self.summaries.append(tf.summary.scalar('kl-loss',loss))
-			# loss = tf.Print(loss, [loss], 'KL loss: ')
-		return tf.identity(loss, name=name)
 
-	def predict(self, VAT_run=False, eps=tf.constant(0.0)):
-		"""See `model.py` for documentation."""
-		if VAT_run:
-			with tf.name_scope('VAT-predict'):
-				inp = tf.add(self.x_unlabel, eps)
-				h_unlbl = self.get_encoded_inputs(inp, VAT=True)[0]
-				d = self.protos
-				logits = compute_logits(d, h_unlbl)
-		else:
-			with tf.name_scope('Predict'):
-				h_train, h_test = self.get_encoded_inputs(self.x_train, self.x_test)
-				y_train = self.y_train
-				nclasses = self.nway
-				protos = self._compute_protos(nclasses, h_train, y_train)
-				self.protos = protos
-				logits = compute_logits(protos, h_test)
-		return [logits]
+	def noisy_forward(self, data, noise, update_batch_stats=False):
+		with tf.name_scope("forward"):
+			encoded = self.h_unlabel
+			logits = compute_logits(self.protos+noise, encoded)
+		return logits
+
+	def get_VAT_shape(self):
+		return tf.shape(self.protos)
+
+	# def generate_virtual_adversarial_perturbation(self, x, logit, is_training=True):
+	# 	with tf.name_scope('Gen-adv-perturb'):
+	# 		d = tf.random_normal(shape=tf.shape(x))
+	# 		for _ in range(FLAGS.VAT_num_power_iterations):
+	# 			d = FLAGS.VAT_xi * get_normalized_vector(d)
+	# 			logit_p = logit
+	# 			logit_m = self.forward(x + d)
+	# 			dist = kl_divergence_with_logit(logit_p, logit_m)
+	# 			self.summaries.append(tf.summary.scalar('perturbation-loss', dist))
+	# 			grad = tf.gradients(dist, [d], aggregation_method=2, name='Adv-grads')[0]
+	# 			d = tf.stop_gradient(grad)
+	# 		return FLAGS.VAT_epsilon * get_normalized_vector(d)
+	#
+	# def virtual_adversarial_loss(self, x, logit, is_training=True, name="vat_loss"):
+	# 	with tf.name_scope('VAT'):
+	# 		r_vadv = self.generate_virtual_adversarial_perturbation(x, logit, is_training=is_training)
+	# 		logit = tf.stop_gradient(logit)
+	# 		logit_p = logit
+	# 		logit_m = self.forward(x + r_vadv)
+	# 		loss = kl_divergence_with_logit(logit_p, logit_m)
+	# 		self.summaries.append(tf.summary.scalar('kl-loss',loss))
+	# 	return tf.identity(loss, name=name)

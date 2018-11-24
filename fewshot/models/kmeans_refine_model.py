@@ -44,9 +44,10 @@ class KMeansRefineModel(RefineModel):
 
   def predict(self):
     """See `model.py` for documentation."""
+    super().predict() #TODO
     nclasses = self.nway
     num_cluster_steps = self.config.num_cluster_steps
-    h_train, h_unlabel, h_test = self.get_encoded_inputs(
+    h_train, h_unlabel, h_test = self.encode(
         self.x_train, self.x_unlabel, self.x_test)
     y_train = self.y_train
     protos = self._compute_protos(nclasses, h_train, y_train)

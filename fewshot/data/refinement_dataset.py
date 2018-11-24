@@ -227,7 +227,6 @@ class RefinementMetaDataset(object):
       if is_training:
         # Use labeled, unlabeled split here for refinement.
         train_unlabel_img_ids.extend(_unlabel_ids[:self._num_unlabel])
-
       else:
         # Copy test set for refinement.
         # This will only work if the test procedure is rolled out in a sequence.

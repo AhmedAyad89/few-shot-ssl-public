@@ -54,6 +54,14 @@ class BasicConfig(object):
             range(len(self.lr_decay_steps))))
     self.similarity = "euclidean"
 
+@RegisterConfig("omniglot", "refine")
+class RefineConfig(BasicConfig):
+  def __init__(self):
+    super(RefineConfig, self).__init__()
+    self.name = "omniglot_refine"
+    self.model_class = "refine"
+
+
 
 @RegisterConfig("omniglot", "basic-pretrain")
 class BasicTestConfig(BasicConfig):
@@ -88,7 +96,7 @@ class BasicVATConfig(BasicConfig):
     super(BasicVATConfig, self).__init__()
     self.name = "omniglot_basic-VAT"
     self.model_class = "basic-VAT"
-    self.VAT_weight = 1.0
+    self.VAT_weight = 3
 
 @RegisterConfig("omniglot", "basic-VAT-ENT")
 class BasicVAT_ENTConfig(BasicVATConfig):
@@ -99,6 +107,14 @@ class BasicVAT_ENTConfig(BasicVATConfig):
     self.ENT_weight = 4.0
     self.max_train_steps = 30000
 
+@RegisterConfig("omniglot", "basic-VAT-prototypes")
+class BasicVAT_PrototypesConfig(BasicVATConfig):
+
+  def __init__(self):
+    super(BasicVAT_PrototypesConfig, self).__init__()
+    self.name = "omniglot_basic-VAT-prototypes"
+    self.model_class = "basic-VAT-prototypes"
+    self.VAT_weight = 1
 
 @RegisterConfig("omniglot", "kmeans-refine")
 class KMeansRefineConfig(BasicConfig):

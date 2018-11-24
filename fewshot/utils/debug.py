@@ -21,12 +21,12 @@
 # =============================================================================
 import tensorflow as tf
 import os
-
+# os.environ['TF_DEBUG'] = '1'
 
 def debug_identity(x, name=None):
   if int(os.environ.get('TF_DEBUG', 0)) == 1:
     return tf.Print(x, [
-        x.name if name is None else name, tf.reduce_mean(x), tf.reduce_max(x),
+        x.name if name is None else name, tf.reduce_mean(x), tf.reduce_max(x), tf.shape(x),
         tf.reduce_min(x)
     ])
   else:
