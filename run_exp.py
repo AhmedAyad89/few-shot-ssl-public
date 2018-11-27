@@ -117,7 +117,7 @@ flags.DEFINE_integer("seed", 0, "Random seed")
 flags.DEFINE_string("dataset", "omniglot", "Dataset name")
 flags.DEFINE_string("model", "basic", "Model name")
 flags.DEFINE_string("pretrain", None, "Model pretrain path")
-flags.DEFINE_bool("continue_train", False, "Model pretrain path, model trained further")
+flags.DEFINE_bool("continue_train", False, "model trained further")
 flags.DEFINE_string("results", "./results", "Checkpoint save path")
 
 FLAGS = tf.flags.FLAGS
@@ -192,6 +192,7 @@ def evaluate(sess, model, meta_dataset, num_episodes=FLAGS.num_eval_episode):
         feed_dict[model.x_unlabel] = batch.x_test
     outputs = [model.prediction]
     results = sess.run(outputs, feed_dict=feed_dict)
+    # print('\n---------------------\n', results, '\n--------------------\n')
     y_pred = results[0]
     y_pred = np.argmax(y_pred, axis=2)
     _ncorr = np.equal(y_pred, batch.y_test).sum()

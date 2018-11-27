@@ -132,7 +132,7 @@ class Model(object):
       ext_wts = kwargs['ext_wts']
     else:
       ext_wts = None
-    update_batch_stats = False
+    update_batch_stats = True
     if 'update_batch_stats' in kwargs:
       update_batch_stats = kwargs['update_batch_stats']
     config = self.config

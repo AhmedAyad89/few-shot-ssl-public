@@ -53,6 +53,9 @@ class BasicModelVAT_Prototypes(ModelVAT):
 	def get_VAT_shape(self):
 		return tf.shape(self.protos)
 
+
+
+
 	# def generate_virtual_adversarial_perturbation(self, x, logit, is_training=True):
 	# 	with tf.name_scope('Gen-adv-perturb'):
 	# 		d = tf.random_normal(shape=tf.shape(x))
