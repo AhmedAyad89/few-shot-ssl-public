@@ -47,7 +47,8 @@ class BasicConfig(object):
     self.learn_rate = 1e-3
     self.normalization = "batch_norm"
     self.lr_scheduler = "fixed"
-    self.lr_decay_steps = [4000, 6000, 8000, 12000, 14000, 16000, 18000, 20000]
+    self.lr_decay_steps = [4000, 6000, 8000, 12000, 14000, 16000, 18000, 20000,
+                           22000, 24000, 26000, 28000]
     self.max_train_steps = 20000
     self.lr_list = list(
         map(lambda x: self.learn_rate * (0.5)**x,
@@ -104,7 +105,7 @@ class BasicVAT_ENTConfig(BasicVATConfig):
     super(BasicVAT_ENTConfig, self).__init__()
     self.name = "omniglot_basic-VAT-ENT"
     self.model_class = "basic-VAT-ENT"
-    self.ENT_weight = 1.0
+    self.ENT_weight = 2.0
     self.max_train_steps = 30000
 
 @RegisterConfig("omniglot", "basic-VAT-prototypes")

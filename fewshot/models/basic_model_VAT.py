@@ -22,7 +22,7 @@ log = logger.get()
 @RegisterModel("basic-VAT")
 class BasicModelVAT(ModelVAT):
 
-	def noisy_forward(self, data, noise, update_batch_stats=False):
+	def noisy_forward(self, data, noise=tf.constant(0.0), update_batch_stats=False):
 		with tf.name_scope("forward"):
 			encoded = self.phi(data+noise, update_batch_stats=update_batch_stats)
 			logits = compute_logits(self.protos, encoded)
@@ -35,7 +35,7 @@ class BasicModelVAT_Prototypes(ModelVAT):
 							 config,
 							 nway=1,
 							 nshot=1,
-							 num_unlabel=10,
+							 num_unlabel=20,
 							 candidate_size=10,
 							 is_training=True,
 							 dtype=tf.float32):
