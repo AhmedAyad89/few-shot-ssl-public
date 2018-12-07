@@ -25,7 +25,7 @@ Author: Mengye Ren (mren@cs.toronto.edu)
 Usage:
 
 Example:
-  python run_multi_exp.py --data_root /data/ \
+  python run_multi_exp.py --data /data/ \
                           --dataset omniglot \
                           --label_ratio 0.1  \
                           --model basic

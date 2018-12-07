@@ -301,3 +301,8 @@ class RefinementMetaDataset(object):
   @property
   def num_classes(self):
     return self._num_classes
+
+
+  def get_train_data(self, class_num):
+    data = self.get_images([self._labels==class_num]) / 255.0
+    return data

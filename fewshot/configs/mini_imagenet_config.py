@@ -79,6 +79,18 @@ class KMeansRefineConfig(BasicConfig):
     self.num_cluster_steps = 1
 
 
+@RegisterConfig("mini-imagenet", "persistent")
+class PersistentConfig(KMeansRefineConfig):
+
+  def __init__(self):
+    super(PersistentConfig, self).__init__()
+    self.name = "mini-imagenet_persistent"
+    self.model_class = "persistent"
+    self.n_train_classes = 64
+    self.proto_dim = 1600
+    self.num_cluster_steps = 1
+
+
 @RegisterConfig("mini-imagenet", "kmeans-refine-radius")
 class KMeansRefineDistractorConfig(BasicConfig):
 

@@ -125,6 +125,8 @@ class MiniImageNetDataset(object):
     self._num_unlbl = len(self._unlbl_idx)
     print('Num label', self._num_lbl)
     print('Num unlabel', self._num_unlbl)
+    self.keys = list(self.class_dict.keys())
+    # print(self.keys, self.class_dict[self.keys[0]]['lbl'])
 
   def get_cache_path(self, split):
     """Gets cache file name."""
@@ -186,7 +188,6 @@ class MiniImageNetDataset(object):
       (1) Pick random set of classes
       (2) Pick random partitioning into train, test, unlabeled
       """
-
     sel_classes = np.random.choice(
         range(len(self.class_dict.keys())),
         size=self.al_instance.n_class + self.al_instance.n_distractor,
@@ -277,6 +278,7 @@ class MiniImageNetDataset(object):
     train_end_idx = self.al_instance.k_train
     train = lbl_class_imgs[0:train_end_idx]
 
+
     test_start_idx = train_end_idx
     test_end_idx = test_start_idx + self.al_instance.k_test
     test = lbl_class_imgs[test_start_idx:test_end_idx]
@@ -366,3 +368,11 @@ class MiniImageNetDataset(object):
     """Gets the test set (unlabeled set) for the fully supervised training."""
     return self._read_from_cache(self._unlbl_idx[idx]), np.array(
         [self._cls_label[kk] for kk in self._unlbl_idx[idx]], dtype=np.int64)
+
+  def get_train_data(self, class_num):
+    data = self._read_set(self.class_dict[self.keys[class_num]]['lbl'])
+    return data
+
+#
+# if __name__ == '__main__':
+#   d = MiniImageNetDataset()

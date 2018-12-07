@@ -96,7 +96,7 @@ class BasicVAT_ENTConfig(BasicVATConfig):
     super(BasicVAT_ENTConfig, self).__init__()
     self.name = "omniglot_basic-VAT-ENT"
     self.model_class = "basic-VAT-ENT"
-    self.ENT_weight = 4.0
+    self.ENT_weight = 1.0
     self.max_train_steps = 30000
 
 
@@ -108,6 +108,16 @@ class KMeansRefineConfig(BasicConfig):
     self.name = "omniglot_kmeans-refine"
     self.model_class = "kmeans-refine"
     self.num_cluster_steps = 1
+
+@RegisterConfig("omniglot", "persistent")
+class PersistentConfig(KMeansRefineConfig):
+
+  def __init__(self):
+    super(PersistentConfig, self).__init__()
+    self.name = "omniglot_persistent"
+    self.model_class = "persistent"
+    self.n_train_classes = 4112
+    self.proto_dim = 64
 
 
 @RegisterConfig("omniglot", "kmeans-refine-test")

@@ -23,7 +23,7 @@
 Author: Mengye Ren (mren@cs.toronto.edu)
 
 Usage:
-  python run_exp.py --data_root {DATA_ROOT}            \
+  python run_exp.py --data {DATA_ROOT}            \
                     --dataset {DATASET}                \
                     --label_ratio {LABEL_RATIO}        \
                     --model {MODEL}                    \
@@ -38,14 +38,14 @@ Usage:
 
 Example:
   # To train a model for Omniglot:
-  python run_exp.py --data_root /data/ \
+  python run_exp.py --data /data/ \
                     --dataset omniglot \
                     --label_ratio 0.1  \
                     --model basic      \
                     --results /ckpt/
 
   # To run evaluation, grab the model ID from training:
-  python run_exp.py --data_root /data/ \
+  python run_exp.py --data /data/ \
                     --dataset omniglot \
                     --label_ratio 0.1  \
                     --model basic      \
@@ -54,7 +54,7 @@ Example:
                     --pretrain {ID}
 
 Flags:
-  --data_root: String. Path to the root for storing all datasets.
+  --data: String. Path to the root for storing all datasets.
   --dataset: String. Name of the dataset. Options: `omniglot`, `mini-imagenet`, `tiered-imagenet
   --disable_distractor: Whether to remove all distractor classes in the unlabeled images.
   --eval: Bool. Whether to run evaluation only.
@@ -92,6 +92,7 @@ from fewshot.models.kmeans_refine_model import KMeansRefineModel
 from fewshot.models.kmeans_refine_radius_model import KMeansRefineRadiusModel
 from fewshot.models.basic_model_VAT import BasicModelVAT
 from fewshot.models.basic_model_VAT_ENT import BasicModelVAT_ENT
+from fewshot.models.persistent_model import PersistentModel
 from fewshot.models.measure import batch_apk
 from fewshot.models.model_factory import get_model
 from fewshot.utils import logger
@@ -369,6 +370,7 @@ def main():
       shuffle_episode=False,
       label_ratio=1,
       seed=FLAGS.seed)
+
   meta_test_dataset = get_concurrent_iterator(
       meta_test_dataset, max_queue_size=100, num_threads=5)
   m, mvalid = _get_model(config, nclasses_train, nclasses_eval)
@@ -376,13 +378,44 @@ def main():
   sconfig = tf.ConfigProto()
   sconfig.gpu_options.allow_growth = True
   with tf.Session(config=sconfig) as sess:
+    ################################################
+    list = [n for n in tf.all_variables() if "persistent_proto" not in n.name]
+    list2 = [n for n in tf.all_variables() if "persistent_proto" in n.name]
+    print(list)
     if FLAGS.pretrain is not None:
       ckpt = tf.train.latest_checkpoint(
           os.path.join(FLAGS.results, FLAGS.pretrain))
-      saver = tf.train.Saver()
+      saver = tf.train.Saver(var_list=list)
       saver.restore(sess, ckpt)
       if FLAGS.continue_train:
         train(sess, config, m, meta_train_dataset, mvalid, meta_test_dataset)
+      if FLAGS.model == 'persistent':
+        print('init persistent')
+        meta_train_data = get_dataset(
+          FLAGS.dataset,
+          train_split_name,
+          nclasses_train,
+          nshot,
+          num_test=num_test,
+          aug_90=_aug_90,
+          num_unlabel=FLAGS.num_unlabel,
+          shuffle_episode=False,
+          seed=FLAGS.seed)
+        num_train_classes = config.n_train_classes
+        proto_dim = config.proto_dim
+        protos = np.zeros([1, num_train_classes, proto_dim])
+        for i in range(num_train_classes):
+          data = meta_train_data.get_train_data(i)
+          data = np.expand_dims(np.asarray(data, dtype=np.float64), 0)
+          print(np.shape(data))
+          if np.shape(data)[1] == 0:
+            continue
+          feed = {mvalid.training_data : data}
+          proto = sess.run(mvalid.proto, feed_dict= feed)
+          protos[0, i] = proto
+        print(np.shape(protos), protos)
+        mvalid._persistent_protos.load(protos)
+        ################################################
     else:
       sess.run(tf.global_variables_initializer())
       train(sess, config, m, meta_train_dataset, mvalid, meta_test_dataset)

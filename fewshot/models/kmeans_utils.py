@@ -45,6 +45,39 @@ def compute_logits(cluster_centers, data):
     neg_dist = -tf.reduce_sum(tf.square(data - cluster_centers), [-1])
   return neg_dist
 
+def compute_cosine_logits(cluster_centers, data):
+  """Computes the logits of being in one cluster, squared Euclidean.
+  Args:
+    cluster_centers: [B, K, D] Cluster center representation.
+    data: [B, N, D] Data representation.
+  Returns:
+    log_prob: [B, N, K] logits.
+  """
+  with tf.name_scope('Kmeans-compute-logits'):
+    cluster_centers = tf.expand_dims(cluster_centers, 1)  # [B, 1, K, D]
+    data = tf.expand_dims(data, 2)  # [B, N, 1, D]
+    # [B, N, K]
+    normalize_a = tf.nn.l2_normalize(data, 3)
+    normalize_b = tf.nn.l2_normalize(cluster_centers, 3)
+    neg_dist = -tf.abs(tf.reduce_sum(tf.multiply(data, cluster_centers), [-1]))
+  return neg_dist
+
+# def compute_logits_global_protos(cluster_centers, training_cluster_centers, data):
+#   """Computes the logits of being in one cluster, squared Euclidean.
+#   Args:
+#     cluster_centers: [B, K, D] Cluster center representation.
+#     data: [B, N, D] Data representation.
+#   Returns:
+#     log_prob: [B, N, K] logits.
+#   """
+#   all_centers = tf.concat([cluster_centers, training_cluster_centers], 0)
+#   with tf.name_scope('Kmeans-compute-logits'):
+#     cluster_centers = tf.expand_dims(all_centers, 1)  # [B, 1, K, D]
+#     data = tf.expand_dims(data, 2)  # [B, N, 1, D]
+#     # [B, N, K]
+#     neg_dist = -tf.reduce_sum(tf.square(data - cluster_centers), [-1])
+#   return neg_dist
+
 
 def assign_cluster(cluster_centers, data):
   """Assigns data to cluster center, using K-Means.
@@ -61,6 +94,30 @@ def assign_cluster(cluster_centers, data):
   ncluster = logits_shape[2]
   logits = tf.reshape(logits, [-1, ncluster])
   prob = tf.nn.softmax(logits)  # Use softmax distance.
+  prob = tf.reshape(prob, [bsize, ndata, ncluster])
+  return prob
+
+def assign_cluster_persistent(cluster_centers, aux_cluster_centers, data):
+  """Assigns data to cluster center, using K-Means.
+  Args:
+    cluster_centers: [B, K, D] Cluster center representation.
+    data: [B, N, D] Data representation.
+  Returns:
+    prob: [B, N, K] Soft assignment.
+  """
+  all_centers = tf.concat([cluster_centers, aux_cluster_centers], 1)
+  num_cluster = tf.shape(cluster_centers)[1]
+  num_all = tf.shape(all_centers)[1]
+  logits = compute_logits(all_centers, data)
+  logits_shape = tf.shape(logits)
+  bsize = logits_shape[0]
+  ndata = logits_shape[1]
+  ncluster = num_cluster #logits_shape[2]
+  logits = tf.reshape(logits, [-1, num_all])
+  prob = tf.nn.softmax(logits)  # Use softmax distance.
+  prob = prob[:, :num_cluster]
+  # prob = tf.Print(prob, [prob, tf.shape(prob), tf.reduce_mean(tf.reduce_max(prob, 1))], '\n----------------\nPobs')
+  prob = prob #* ( 1 / tf.reduce_mean(tf.reduce_sum(prob, 1)))
   prob = tf.reshape(prob, [bsize, ndata, ncluster])
   return prob
 
