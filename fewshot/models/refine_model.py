@@ -89,7 +89,7 @@ class RefineModel(BasicModel):
 
   def init_episode_classifier(self):
     super(RefineModel, self).init_episode_classifier()
-    self._h_unlabel = self.phi(self.x_unlabel_flat, update_batch_stats=False)
+    self._h_unlabel = self.phi(self.x_unlabel_flat, update_batch_stats=True)
 
   def get_train_op(self, logits, y_test):
     return super().get_train_op(logits, y_test)

@@ -84,7 +84,7 @@ class ModelVAT(RefineModel):
 			logit = tf.stop_gradient(logit)
 			logit_p = logit
 			logit_m = self.noisy_forward(x, r_vadv)
-			loss = kl_divergence_with_logit(logit_p, logit_m) + (0.2 * entropy_y_x(tf.expand_dims(logit_m, 0)))
+			loss = kl_divergence_with_logit(logit_p, logit_m)# + (0.2 * entropy_y_x(tf.expand_dims(logit_m, 0)))
 			self.summaries.append(tf.summary.scalar('kl-loss',loss))
 		return tf.identity(loss, name=name)
 
