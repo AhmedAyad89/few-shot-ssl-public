@@ -117,6 +117,26 @@ class BasicVAT_PrototypesConfig(BasicVATConfig):
     self.model_class = "basic-VAT-prototypes"
     self.VAT_weight = 1
 
+@RegisterConfig("omniglot", "VAT-refine")
+class RefineVAT(BasicVATConfig):
+  def __init__(self):
+    super(BasicVATConfig, self).__init__()
+    self.name = "omniglot_VAT-refine"
+    self.model_class = "VAT-refine"
+    self.VAT_weight = 1.0
+
+
+@RegisterConfig("omniglot", "VAT-refine-prototypes")
+class RefineVAT(BasicVATConfig):
+  def __init__(self):
+    super(BasicVATConfig, self).__init__()
+    self.name = "omniglot_VAT-refine-prototypes"
+    self.model_class = "VAT-refine-prototypes"
+    self.VAT_weight = 1.0
+    self.inference_step_size = 0.15
+    self.num_steps = 10
+    self.VAT_eps = 4.0
+
 @RegisterConfig("omniglot", "kmeans-refine")
 class KMeansRefineConfig(BasicConfig):
 
@@ -190,3 +210,33 @@ class KMeansRefineMaskTestConfig(KMeansRefineMaskConfig):
     self.steps_per_valid = 10
     self.steps_per_log = 10
     self.steps_per_save = 10
+
+
+@RegisterConfig("omniglot", "persistent")
+class PersistentConfig(BasicConfig):
+
+  def __init__(self):
+    super().__init__()
+    self.name = "omniglot_persistent"
+    self.model_class = "persistent"
+    self.persistent_reg = None
+    self.trainable = True
+    self.n_train_classes = 4112
+    self.proto_dim = 64
+    self.classification_weight = 0.005
+
+
+@RegisterConfig("omniglot", "persistent-SSL")
+class PersistentConfig(BasicConfig):
+
+  def __init__(self):
+    super().__init__()
+    self.name = "omniglot_persistent-SSL"
+    self.model_class = "persistent-SSL"
+    self.persistent_reg = None
+    self.trainable = True
+    self.n_train_classes = 4112
+    self.proto_dim = 64
+    self.classification_weight = 0.005
+    self.VAT_weight = 1.0
+    self.ENT_weight = 1.0

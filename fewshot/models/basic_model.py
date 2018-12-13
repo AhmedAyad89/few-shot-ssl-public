@@ -60,6 +60,9 @@ class BasicModel(Model):
       logits = compute_logits(self.protos, self.h_test)
       self._logits = [logits]
 
+  def compute_cluster_compactness(self, data, labels):
+    pass
+
   def get_train_op(self, logits, y_test):
     """See `model.py` for documentation."""
     with tf.name_scope('Classification-Loss'):
@@ -96,6 +99,12 @@ class BasicModel(Model):
       # proto_norms = l2_norm(self.protos)
       # loss+= 0.01 * proto_norms
       # self.summaries.append(tf.summary.scalar('ProtoNorm-Loss', proto_norms))
+
+    # loss = tf.Print(loss, [tf.shape(self.protos)])
+    # cluster_distances = -l2_norm( tf.expand_dims(self.protos,1) - tf.expand_dims(self.protos, 2) )
+    # cluster_variance = tf.nn.moments(self._logits)
+    # loss = tf.Print(loss, [loss, cluster_distances])
+    # loss += 0.05 * cluster_distances
 
     opt = tf.train.AdamOptimizer(self.learn_rate, name='Basic-Optimizer')
     grads_and_vars = opt.compute_gradients(loss)

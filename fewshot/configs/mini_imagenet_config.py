@@ -79,6 +79,7 @@ class KMeansRefineConfig(BasicConfig):
     self.num_cluster_steps = 1
 
 
+
 @RegisterConfig("mini-imagenet", "kmeans-refine-radius")
 class KMeansRefineDistractorConfig(BasicConfig):
 
@@ -115,3 +116,16 @@ class BasicVAT_ENTConfig(BasicVAT):
     self.model_class = "basic-VAT-ENT"
     self.ENT_weight = 1.0
     self.max_train_steps = 150000
+
+
+
+@RegisterConfig("mini-imagenet", "VAT-refine-prototypes")
+class RefineVAT(BasicVAT):
+  def __init__(self):
+    super(BasicVAT, self).__init__()
+    self.name = "mini-imagenet_VAT-refine-prototypes"
+    self.model_class = "VAT-refine-prototypes"
+    self.VAT_weight = 1.0
+    self.inference_step_size = 0.005
+    self.num_steps = 1
+    self.VAT_eps = 4.0

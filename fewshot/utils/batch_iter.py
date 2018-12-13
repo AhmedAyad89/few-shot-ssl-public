@@ -135,7 +135,7 @@ class BatchIterator(IBatchIterator):
         "Epoch {:3d} Progress {} ({:5.2f}%)".format(e, progress_str, p))
     pass
 
-  def next(self):
+  def __next__(self):
     """Iterate next element."""
     self._mutex.acquire()
     try:
@@ -208,7 +208,7 @@ if __name__ == "__main__":
       progress_bar=False,
       get_fn=lambda x: x,
       cycle=False,
-      shuffle=False)
+      shuffle=True)
   for ii in b:
     print(ii)
   b.reset()

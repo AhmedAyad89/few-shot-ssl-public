@@ -35,6 +35,8 @@ from fewshot.utils import logger
 
 log = logger.get()
 flags = tf.flags
+
+
 FLAGS = tf.flags.FLAGS
 
 
@@ -273,3 +275,47 @@ class OmniglotDataset(RefinementMetaDataset):
                               self._split + split_def_str + aug_str + '.pkl')
 
     return cache_path
+
+  def next_classification_batch(self):
+    pass
+
+
+# @RegisterDataset('omniglot_classification')
+# class OmniglotClassificationDataset(RefinementMetaDataset):
+#
+#   def __init__(self, folder, split, split_def = 'vinyals', label_ratio=None,
+#                label_batch_size=12, unlabel_batch_size = 24, aug_90=True, seed=0):
+#     self._rnd = np.random.RandomState(seed)
+#     self._seed = seed
+#     self._label_ratio = FLAGS.label_ratio if label_ratio is None else label_ratio
+#     log.info('Label ratio {}'.format(self._label_ratio))
+#
+#     self.read_dataset()
+#
+#     # Build a set for quick query.
+#     self._label_split_idx = np.array(self._label_split_idx)
+#     self._label_split_idx_set = set(list(self._label_split_idx))
+#     self._unlabel_split_idx = list(
+#         filter(lambda _idx: _idx not in self._label_split_idx_set,
+#                range(self._labels.shape[0])))
+#     self._unlabel_split_idx = np.array(self._unlabel_split_idx)
+#     if len(self._unlabel_split_idx) > 0:
+#       self._unlabel_split_idx_set = set(self._unlabel_split_idx)
+#     else:
+#       self._unlabel_split_idx_set = set()
+#
+#     num_label_cls = len(self._label_str)
+#     self._num_classes = num_label_cls
+#     num_ex = self._labels.shape[0]
+#     ex_ids = np.arange(num_ex)
+#     self._label_idict = {}
+#     for cc in range(num_label_cls):
+#       self._label_idict[cc] = ex_ids[self._labels == cc]
+#
+#
+#     def next(self):
+#       pass
+
+
+
+# if __name__ == "__main__":

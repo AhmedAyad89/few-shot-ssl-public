@@ -94,16 +94,21 @@ from fewshot.models.basic_model_VAT import BasicModelVAT
 from fewshot.models.basic_model_VAT_ENT import BasicModelVAT_ENT
 from fewshot.models.basic_model_VAT import BasicModelVAT_Prototypes
 from fewshot.models.VAT_refine_model import RefineModelVAT, RefineModelVAT_Prototypes
+from fewshot.models.persistent_model import PersistentModel, PersistentSSLModel
 from fewshot.models.measure import batch_apk
 from fewshot.models.model_factory import get_model
 from fewshot.utils import logger
 from fewshot.utils.experiment_logger import ExperimentLogger
 from fewshot.utils.lr_schedule import FixedLearnRateScheduler
 from tqdm import tqdm
+from fewshot.utils.batch_iter import BatchIterator
+
 
 log = logger.get()
 
 flags = tf.flags
+flags.DEFINE_integer("lbl_batch_size", 16, "batch size for normal classification")
+flags.DEFINE_integer("ulbl_batch_size",32, "batch size for normal classification")
 flags.DEFINE_bool("eval", False, "Whether to only run evaluation")
 flags.DEFINE_bool("use_test", False, "Use the test set or not")
 flags.DEFINE_float("learn_rate", None, "Start learning rate")
@@ -236,6 +241,8 @@ def train(sess,
           meta_dataset,
           mvalid=None,
           meta_val_dataset=None,
+          label_dataset=None,
+          unlabel_dataset=None,
           log_results=True,
           summarize=True,
           run_eval=True,
@@ -281,6 +288,12 @@ def train(sess,
         feed_dict[model.x_unlabel] = batch.x_unlabel
       else:
         feed_dict[model.x_unlabel] = batch.x_test
+    if hasattr(model, 'training_data'):
+      x, y = label_dataset.__next__()
+      feed_dict[model.training_data] = x
+      feed_dict[model.training_labels] = y
+    if hasattr(model, 'unlabeled_training_data'):
+      feed_dict[model.unlabeled_training_data] = unlabel_dataset.__next__()[0]
 
     if (niter + 1) % FLAGS.steps_per_summary == 0 and summarize:
       loss_val, y_pred, _, summary, adv_summary = sess.run(
@@ -360,6 +373,20 @@ def main():
       num_unlabel=FLAGS.num_unlabel,
       shuffle_episode=False,
       seed=FLAGS.seed)
+  train_dataset_labeled = BatchIterator(
+      meta_train_dataset.get_size(),
+      batch_size=FLAGS.lbl_batch_size,
+      cycle=True,
+      shuffle=True,
+      get_fn=meta_train_dataset.get_batch_idx,
+      log_epoch=-1)
+  train_dataset_unlabeled = BatchIterator(
+      meta_train_dataset.get_size(),
+      batch_size=FLAGS.ulbl_batch_size,
+      cycle=True,
+      shuffle=True,
+      get_fn=meta_train_dataset.get_batch_idx_test,
+      log_epoch=-1)
   meta_train_dataset = get_concurrent_iterator(
       meta_train_dataset, max_queue_size=100, num_threads=5)
   meta_test_dataset = get_dataset(
@@ -377,6 +404,7 @@ def main():
       meta_test_dataset, max_queue_size=100, num_threads=5)
   m, mvalid = _get_model(config, nclasses_train, nclasses_eval)
 
+
   sconfig = tf.ConfigProto()
   sconfig.gpu_options.allow_growth = True
   with tf.Session(config=sconfig) as sess:
@@ -392,7 +420,8 @@ def main():
         train(sess, config, m, meta_train_dataset, mvalid, meta_test_dataset)
     else:
       sess.run(tf.global_variables_initializer())
-      train(sess, config, m, meta_train_dataset, mvalid, meta_test_dataset)
+      train(sess, config, m, meta_train_dataset, mvalid, meta_test_dataset,
+            train_dataset_labeled, train_dataset_unlabeled)
 
     results_train = evaluate(sess, mvalid, meta_train_dataset)
     results_test = evaluate(sess, mvalid, meta_test_dataset)
@@ -404,4 +433,23 @@ def main():
 
 
 if __name__ == "__main__":
+  # meta_train_dataset = get_dataset(
+  #     FLAGS.dataset,
+  #     'train',
+  #     5,
+  #     5,
+  #     num_test=5,
+  #     aug_90=False,
+  #     num_unlabel=FLAGS.num_unlabel,
+  #     shuffle_episode=False,
+  #     seed=FLAGS.seed)
+  # train_dataset_labeled = BatchIterator(
+  #     meta_train_dataset.get_size(),
+  #     batch_size=FLAGS.lbl_batch_size,
+  #     cycle=True,
+  #     shuffle=True,
+  #     get_fn=meta_train_dataset.get_batch_idx,
+  #     log_epoch=-1)
+  # x , y = train_dataset_labeled.__next__()
+  # print(np.shape(np.asarray(x)), np.shape(np.asarray(y)))
   main()

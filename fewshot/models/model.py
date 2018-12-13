@@ -145,7 +145,7 @@ class Model(object):
     h_all = self.phi(x_all, ext_wts=ext_wts, update_batch_stats=update_batch_stats)
     # tf.assert_greater(tf.reduce_mean(tf.abs(h_all)), 0.0)
     # h_all_p = self.phi(tf.random_normal(tf.shape(x_all)), ext_wts=ext_wts)
-    # h_all = tf.Print(h_all, [tf.reduce_sum(h_all),tf.reduce_sum(h_all - h_all_p)], '\n-----------')
+    # h_all = tf.Print(h_all, [tf.shape(h_all)], '\n-----------')
     h_all = tf.reshape(h_all, [bsize, sum(num), -1])
     h_list = tf.split(h_all, num, axis=1)
     return h_list
@@ -181,6 +181,9 @@ class Model(object):
                                 ('Proto norms', tf.norm(tf.squeeze(protos), axis=1), family='Protos')) #TODO
       self.adv_summaries.append(tf.summary.tensor_summary('Proto norms', protos, family='Protos'))
     return protos
+
+  def compute_cluster_compactness(self):
+    raise NotImplemented()
 
   def compute_output(self):
     # Evaluation.
