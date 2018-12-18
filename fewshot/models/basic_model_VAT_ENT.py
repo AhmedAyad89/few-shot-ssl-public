@@ -25,8 +25,12 @@ class BasicModelVAT_ENT(BasicModelVAT):
 		config = self.config
 		ENT_weight = config.ENT_weight
 
+
 		logits = tf.expand_dims(self._unlabel_logits,0)
-		ENT_loss = entropy_y_x(logits)
+		logits = tf.concat([logits, self.logits[0]], 1)
+		# logits  = tf.Print(logits, [ tf.shape(self.logits)], summarize=50)
+		ENT_loss = 0.8 * entropy_y_x(logits) + (0.2 * entropy_y_x(self._unlabel_logits))
+		# ENT_loss = tf.Print(ENT_loss, [ENT_loss], '\n----------------\n')
 		ENT_opt = tf.train.AdamOptimizer(ENT_weight * self.learn_rate, name="Entropy-optimizer")
 		ENT_grads_and_vars = ENT_opt.compute_gradients(ENT_loss)
 		ENT_train_op = ENT_opt.apply_gradients(ENT_grads_and_vars)

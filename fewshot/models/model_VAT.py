@@ -40,7 +40,14 @@ class ModelVAT(RefineModel):
 		VAT_weight = config.VAT_weight
 
 		with tf.control_dependencies([self.protos]):
-			vat_loss =self.virtual_adversarial_loss(self.x_unlabel_flat, self._unlabel_logits)
+			labeled_flat = tf.reshape(self.x_test, [-1, config.height, config.width, config.num_channel])
+			label_logits = tf.squeeze(self.logits)
+			data = tf.concat([self.x_unlabel_flat, labeled_flat], 0)
+			logits = tf.concat([self._unlabel_logits, label_logits],0)
+
+			vat_loss =self.virtual_adversarial_loss(data, logits)
+
+			# vat_loss =self.virtual_adversarial_loss(self.x_unlabel_flat, self._unlabel_logits)
 
 		vat_opt = tf.train.AdamOptimizer(VAT_weight * self.learn_rate, name="VAT_optimizer")
 		vat_grads_and_vars = vat_opt.compute_gradients(vat_loss)

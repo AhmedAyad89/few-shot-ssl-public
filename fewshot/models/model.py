@@ -70,6 +70,7 @@ class Model(object):
     self._is_training = is_training
     self.summaries = []         #Basic scalar summaries like losses
     self.adv_summaries = []     #More expensive/informative summaries about weights, gradients and activations
+    self.inference_summaries = []
     height = config.height
     width = config.width
     channels = config.num_channel
@@ -109,6 +110,8 @@ class Model(object):
         self._loss, self._train_op = self.get_train_op(self.logits, self.y_test)
         self.merged_summary = tf.summary.merge(self.summaries, 'train summaries')
         self.merged_adv_summary = tf.summary.merge(self.adv_summaries, 'Advanced summaries')
+    elif len(self.inference_summaries) > 0 :
+        self.inference_summary = tf.summary.merge(self.inference_summaries, 'Advanced summaries')
 
   def init_episode_classifier(self):
     """"

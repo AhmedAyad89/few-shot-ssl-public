@@ -105,7 +105,7 @@ class BasicVAT_ENTConfig(BasicVATConfig):
     super(BasicVAT_ENTConfig, self).__init__()
     self.name = "omniglot_basic-VAT-ENT"
     self.model_class = "basic-VAT-ENT"
-    self.ENT_weight = 2.0
+    self.ENT_weight = 5.0
     self.max_train_steps = 30000
 
 @RegisterConfig("omniglot", "basic-VAT-prototypes")
@@ -127,13 +127,13 @@ class RefineVAT(BasicVATConfig):
 
 
 @RegisterConfig("omniglot", "VAT-refine-prototypes")
-class RefineVAT(BasicVATConfig):
+class RefineVATPrototypes(BasicVATConfig):
   def __init__(self):
     super(BasicVATConfig, self).__init__()
     self.name = "omniglot_VAT-refine-prototypes"
     self.model_class = "VAT-refine-prototypes"
     self.VAT_weight = 1.0
-    self.inference_step_size = 0.15
+    self.inference_step_size = 0.09
     self.num_steps = 10
     self.VAT_eps = 4.0
 
@@ -227,7 +227,7 @@ class PersistentConfig(BasicConfig):
 
 
 @RegisterConfig("omniglot", "persistent-SSL")
-class PersistentConfig(BasicConfig):
+class PersistentSSLConfig(BasicConfig):
 
   def __init__(self):
     super().__init__()

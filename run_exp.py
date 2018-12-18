@@ -110,7 +110,7 @@ flags.DEFINE_float("learn_rate", None, "Start learning rate")
 flags.DEFINE_integer("nclasses_eval", 5, "Number of classes for testing")
 flags.DEFINE_integer("nclasses_train", 5, "Number of classes for training")
 flags.DEFINE_integer("nshot", 1, "nshot")
-flags.DEFINE_integer("num_eval_episode", 600, "Number of evaluation episodes")
+flags.DEFINE_integer("num_eval_episode", 300, "Number of evaluation episodes")
 flags.DEFINE_integer("num_test", -1, "Number of test images per episode")
 flags.DEFINE_integer("num_unlabel", 5, "Number of unlabeled for training")
 flags.DEFINE_integer("steps_per_summary", 100, "Number of steps between summary ops")
@@ -177,6 +177,8 @@ def evaluate(sess, model, meta_dataset, num_episodes=FLAGS.num_eval_episode):
   ncorr = 0
   ntotal = 0
   all_acc = []
+  if hasattr(model, 'inference_summary'):
+    train_writer = tf.summary.FileWriter('inference_summaries' , sess.graph)
   for neval in tqdm(six.moves.xrange(num_episodes), desc="evaluation", ncols=0):
     dataset = meta_dataset.next()
     batch = dataset.next_batch()
@@ -192,9 +194,13 @@ def evaluate(sess, model, meta_dataset, num_episodes=FLAGS.num_eval_episode):
       else:
         feed_dict[model.x_unlabel] = batch.x_test
     outputs = [model.prediction]
-    results = sess.run(outputs, feed_dict=feed_dict)
-    # v = sess.run(model.vat_grads_and_vars, feed_dict=feed_dict)
-    # print('\n---------------------\n', v, '\n--------------------\n')
+    results= sess.run(outputs, feed_dict=feed_dict)
+
+    if neval % 10 == 0  and hasattr(model, 'inference_summary') :
+      summary = model.inference_summary
+      summaries = sess.run(summary, feed_dict=feed_dict)
+      train_writer.add_summary(summaries, neval)
+
     y_pred = results[0]
     y_pred = np.argmax(y_pred, axis=2)
     _ncorr = np.equal(y_pred, batch.y_test).sum()

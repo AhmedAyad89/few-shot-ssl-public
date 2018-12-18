@@ -120,12 +120,13 @@ class BasicVAT_ENTConfig(BasicVAT):
 
 
 @RegisterConfig("mini-imagenet", "VAT-refine-prototypes")
-class RefineVAT(BasicVAT):
+class RefineVATPrototypes(BasicVAT):
   def __init__(self):
     super(BasicVAT, self).__init__()
     self.name = "mini-imagenet_VAT-refine-prototypes"
     self.model_class = "VAT-refine-prototypes"
     self.VAT_weight = 1.0
+    self.ENT_weight = 1.0
     self.inference_step_size = 0.005
-    self.num_steps = 1
+    self.num_steps = 10
     self.VAT_eps = 4.0
