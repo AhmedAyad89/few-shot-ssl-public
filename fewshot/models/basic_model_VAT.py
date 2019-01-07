@@ -53,26 +53,3 @@ class BasicModelVAT_Prototypes(ModelVAT):
 	def get_VAT_shape(self):
 		return tf.shape(self.protos)
 
-
-	# def generate_virtual_adversarial_perturbation(self, x, logit, is_training=True):
-	# 	with tf.name_scope('Gen-adv-perturb'):
-	# 		d = tf.random_normal(shape=tf.shape(x))
-	# 		for _ in range(FLAGS.VAT_num_power_iterations):
-	# 			d = FLAGS.VAT_xi * get_normalized_vector(d)
-	# 			logit_p = logit
-	# 			logit_m = self.forward(x + d)
-	# 			dist = kl_divergence_with_logit(logit_p, logit_m)
-	# 			self.summaries.append(tf.summary.scalar('perturbation-loss', dist))
-	# 			grad = tf.gradients(dist, [d], aggregation_method=2, name='Adv-grads')[0]
-	# 			d = tf.stop_gradient(grad)
-	# 		return FLAGS.VAT_epsilon * get_normalized_vector(d)
-	#
-	# def virtual_adversarial_loss(self, x, logit, is_training=True, name="vat_loss"):
-	# 	with tf.name_scope('VAT'):
-	# 		r_vadv = self.generate_virtual_adversarial_perturbation(x, logit, is_training=is_training)
-	# 		logit = tf.stop_gradient(logit)
-	# 		logit_p = logit
-	# 		logit_m = self.forward(x + r_vadv)
-	# 		loss = kl_divergence_with_logit(logit_p, logit_m)
-	# 		self.summaries.append(tf.summary.scalar('kl-loss',loss))
-	# 	return tf.identity(loss, name=name)

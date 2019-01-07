@@ -149,7 +149,6 @@ class RefineModelVAT_Prototypes(BasicModelVAT_Prototypes):
 			# self._logits = tf.Print(self._logits, [tf.shape(self.x_untf.shape(self.y_train_one_hot)])
 		super().compute_output()
 
-
 	def generate_virtual_adversarial_perturbation(self, x, logit, shape=None, is_training=True, wts=None):
 		with tf.name_scope('Gen-adv-perturb'):
 			if shape is None:

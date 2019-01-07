@@ -32,8 +32,9 @@ import tensorflow as tf
 
 from fewshot.models.distractor_utils import eval_distractor
 from fewshot.models.kmeans_refine_model import KMeansRefineModel
+from fewshot.models.basic_model_VAT_ENT import BasicModelVAT_ENT
 from fewshot.models.kmeans_utils import assign_cluster_radii
-from fewshot.models.kmeans_utils import compute_logits_radii
+from fewshot.models.kmeans_utils import compute_logits_radii, compute_logits
 from fewshot.models.kmeans_utils import update_cluster
 from fewshot.models.model_factory import RegisterModel
 from fewshot.models.nnlib import concat
@@ -49,10 +50,11 @@ FLAGS = tf.flags.FLAGS
 
 
 @RegisterModel("kmeans-refine-radius")
-class KMeansRefineRadiusModel(KMeansRefineModel):
+class KMeansRefineRadiusModel(BasicModelVAT_ENT):
 
   def predict(self):
     """See `model.py` for documentation."""
+    super().predict()
     nclasses = self.nway
     num_cluster_steps = self.config.num_cluster_steps
     h_train, h_unlabel, h_test = self.encode(
@@ -96,6 +98,8 @@ class KMeansRefineRadiusModel(KMeansRefineModel):
     radii[-1] = tf.ones([bsize, 1]) * distractor_radius
     radii = concat(radii, 1)  # [B, K]
 
+    self.radii = radii
+
     h_all = concat([h_train, h_unlabel], 1)
     logits_list = []
     logits_list.append(compute_logits_radii(protos, h_test, radii))
@@ -117,4 +121,169 @@ class KMeansRefineRadiusModel(KMeansRefineModel):
     self._distractor_recall = recall
     self._distractor_precision = precision
     self._distractor_pred = 1.0 - tf.exp(prob_unlabel[:, :, -1])
-    return logits_list
+
+    self._logits = logits_list
+    if not self.is_training:
+      self._logits = [compute_logits(protos[:, 0:5], h_test)]
+    protos = concat([self.protos, tf.zeros_like(self.protos[:, 0:1, :])], 1)
+    self._unlabel_logits = compute_logits_radii(protos, h_unlabel, self.radii)[0]
+
+
+  def noisy_forward(self, data, noise=tf.constant(0.0), update_batch_stats=False):
+    with tf.name_scope("forward"):
+      protos = concat([self.protos, tf.zeros_like(self.protos[:, 0:1, :])], 1)
+      encoded = self.phi(data + noise, update_batch_stats=update_batch_stats)
+      logits = compute_logits_radii(protos, tf.expand_dims(encoded,0), self.radii)
+    return logits
+
+  # def compute_output(self):
+  #   super().predict()
+  #   nclasses = self.nway
+  #   num_cluster_steps = self.config.num_cluster_steps
+  #   h_train, h_unlabel, h_test = self.encode(
+  #       self.x_train, self.x_unlabel, self.x_test)
+  #   y_train = self.y_train
+  #   protos = self._compute_protos(nclasses, h_train, y_train)
+  #
+  #   # Distractor class has a zero vector as prototype.
+  #   protos = concat([protos, tf.zeros_like(protos[:, 0:1, :])], 1)
+  #
+  #   # Hard assignment for training images.
+  #   prob_train = [None] * (nclasses + 1)
+  #   for kk in range(nclasses):
+  #     # [B, N, 1]
+  #     prob_train[kk] = tf.expand_dims(
+  #         tf.cast(tf.equal(y_train, kk), h_train.dtype), 2)
+  #     prob_train[-1] = tf.zeros_like(prob_train[0])
+  #   prob_train = concat(prob_train, 2)
+  #
+  #   # Initialize cluster radii.
+  #   radii = [None] * (nclasses + 1)
+  #   y_train_shape = tf.shape(y_train)
+  #   bsize = y_train_shape[0]
+  #   for kk in range(nclasses):
+  #     radii[kk] = tf.ones([bsize, 1]) * 1.0
+  #
+  #   # Distractor class has a larger radius.
+  #   if FLAGS.learn_radius:
+  #     with tf.variable_scope("foo", reuse=tf.AUTO_REUSE):
+  #       log_distractor_radius = tf.get_variable(
+  #           "log_distractor_radius",
+  #           shape=[],
+  #           dtype=tf.float32,
+  #           initializer=tf.constant_initializer(np.log(FLAGS.init_radius)))
+  #     distractor_radius = tf.exp(log_distractor_radius)
+  #   else:
+  #     distractor_radius = FLAGS.init_radius
+  #   distractor_radius = tf.cond(
+  #       tf.shape(self._x_unlabel)[1] > 0, lambda: distractor_radius,
+  #       lambda: 100000.0)
+  #   # distractor_radius = tf.Print(distractor_radius, [distractor_radius])
+  #   radii[-1] = tf.ones([bsize, 1]) * distractor_radius
+  #   radii = concat(radii, 1)  # [B, K]
+  #
+  #   self.radii = radii
+  #
+  #   h_all = concat([h_train, h_unlabel], 1)
+  #   logits_list = []
+  #   logits_list.append(compute_logits_radii(protos, h_test, radii))
+  #
+  #   # Run clustering.
+  #   for tt in range(num_cluster_steps):
+  #     # Label assignment.
+  #     prob_unlabel = assign_cluster_radii(protos, h_unlabel, radii)
+  #     prob_all = concat([prob_train, prob_unlabel], 1)
+  #     protos = update_cluster(h_all, prob_all)
+  #     logits_list.append(compute_logits_radii(protos, h_test, radii))
+  #
+  #   self._logits = [compute_logits(protos[:-1], h_test)]
+  #   super().compute_output()
+#######################################################################
+
+@RegisterModel("kmeans-radius")
+class KMeansRadiusModel(BasicModelVAT_ENT):
+
+  def predict(self):
+    """See `model.py` for documentation."""
+    super().predict()
+    nclasses = self.nway
+    num_cluster_steps = self.config.num_cluster_steps
+    h_train, h_unlabel, h_test = self.encode(
+        self.x_train, self.x_unlabel, self.x_test)
+    y_train = self.y_train
+    protos = self._compute_protos(nclasses, h_train, y_train)
+
+    # Distractor class has a zero vector as prototype.
+    protos = concat([protos, tf.zeros_like(protos[:, 0:1, :])], 1)
+
+    # Hard assignment for training images.
+    prob_train = [None] * (nclasses + 1)
+    for kk in range(nclasses):
+      # [B, N, 1]
+      prob_train[kk] = tf.expand_dims(
+          tf.cast(tf.equal(y_train, kk), h_train.dtype), 2)
+      prob_train[-1] = tf.zeros_like(prob_train[0])
+    prob_train = concat(prob_train, 2)
+
+    # Initialize cluster radii.
+    radii = [None] * (nclasses + 1)
+    y_train_shape = tf.shape(y_train)
+    bsize = y_train_shape[0]
+    for kk in range(nclasses):
+      radii[kk] = tf.ones([bsize, 1]) * 1.0
+
+    # Distractor class has a larger radius.
+    if FLAGS.learn_radius:
+      log_distractor_radius = tf.get_variable(
+          "log_distractor_radius",
+          shape=[],
+          dtype=tf.float32,
+          initializer=tf.constant_initializer(np.log(FLAGS.init_radius)))
+      distractor_radius = tf.exp(log_distractor_radius)
+    else:
+      distractor_radius = FLAGS.init_radius
+    distractor_radius = tf.cond(
+        tf.shape(self._x_unlabel)[1] > 0, lambda: distractor_radius,
+        lambda: 100000.0)
+    # distractor_radius = tf.Print(distractor_radius, [distractor_radius])
+    radii[-1] = tf.ones([bsize, 1]) * distractor_radius
+    radii = concat(radii, 1)  # [B, K]
+
+    self.radii = radii
+
+    h_all = concat([h_train, h_unlabel], 1)
+    logits_list = []
+    logits_list.append(compute_logits_radii(protos, h_test, radii))
+
+    # Run clustering.
+    for tt in range(num_cluster_steps):
+      # Label assignment.
+      prob_unlabel = assign_cluster_radii(protos, h_unlabel, radii)
+      prob_all = concat([prob_train, prob_unlabel], 1)
+      protos = update_cluster(h_all, prob_all)
+      logits_list.append(compute_logits_radii(protos, h_test, radii))
+
+    # Distractor evaluation.
+    is_distractor = tf.equal(tf.argmax(prob_unlabel, axis=-1), nclasses)
+    pred_non_distractor = 1.0 - tf.to_float(is_distractor)
+    acc, recall, precision = eval_distractor(pred_non_distractor,
+                                             self.y_unlabel)
+    self._non_distractor_acc = acc
+    self._distractor_recall = recall
+    self._distractor_precision = precision
+    self._distractor_pred = 1.0 - tf.exp(prob_unlabel[:, :, -1])
+
+    protos = concat([self.protos, tf.zeros_like(self.protos[:, 0:1, :])], 1)
+    self._unlabel_logits = compute_logits_radii(protos, h_unlabel, radii)[0]
+    self._logits = [compute_logits_radii(protos, h_test, radii)]
+    if not self.is_training:
+      self._logits = [compute_logits(self.protos, h_test)]
+
+    self.adv_summaries.append(tf.summary.scalar('distractor_radius', distractor_radius))
+
+  def noisy_forward(self, data, noise=tf.constant(0.0), update_batch_stats=False):
+    with tf.name_scope("forward"):
+      protos = concat([self.protos, tf.zeros_like(self.protos[:, 0:1, :])], 1)
+      encoded = self.phi(data + noise, update_batch_stats=update_batch_stats)
+      logits = compute_logits_radii(protos, tf.expand_dims(encoded, 0), self.radii)
+    return logits

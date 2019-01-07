@@ -89,11 +89,12 @@ from fewshot.data.tiered_imagenet import TieredImageNetDataset
 from fewshot.models.basic_model import BasicModel
 from fewshot.models.kmeans_refine_mask_model import KMeansRefineMaskModel
 from fewshot.models.kmeans_refine_model import KMeansRefineModel
-from fewshot.models.kmeans_refine_radius_model import KMeansRefineRadiusModel
+from fewshot.models.kmeans_refine_radius_model import KMeansRefineRadiusModel, KMeansRadiusModel
 from fewshot.models.basic_model_VAT import BasicModelVAT
 from fewshot.models.basic_model_VAT_ENT import BasicModelVAT_ENT
 from fewshot.models.basic_model_VAT import BasicModelVAT_Prototypes
 from fewshot.models.VAT_refine_model import RefineModelVAT, RefineModelVAT_Prototypes
+from fewshot.models.model_pairwise import PairwiseModel
 from fewshot.models.measure import batch_apk
 from fewshot.models.model_factory import get_model
 from fewshot.utils import logger
@@ -110,10 +111,10 @@ flags.DEFINE_float("learn_rate", None, "Start learning rate")
 flags.DEFINE_integer("nclasses_eval", 5, "Number of classes for testing")
 flags.DEFINE_integer("nclasses_train", 5, "Number of classes for training")
 flags.DEFINE_integer("nshot", 1, "nshot")
-flags.DEFINE_integer("num_eval_episode", 300, "Number of evaluation episodes")
+flags.DEFINE_integer("num_eval_episode", 600, "Number of evaluation episodes")
 flags.DEFINE_integer("num_test", -1, "Number of test images per episode")
 flags.DEFINE_integer("num_unlabel", 5, "Number of unlabeled for training")
-flags.DEFINE_integer("steps_per_summary", 100, "Number of steps between summary ops")
+flags.DEFINE_integer("steps_per_summary", 200, "Number of steps between summary ops")
 flags.DEFINE_integer("seed", 0, "Random seed")
 flags.DEFINE_string("dataset", "omniglot", "Dataset name")
 flags.DEFINE_string("model", "basic", "Model name")

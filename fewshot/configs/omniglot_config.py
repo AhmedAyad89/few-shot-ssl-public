@@ -97,7 +97,8 @@ class BasicVATConfig(BasicConfig):
     super(BasicVATConfig, self).__init__()
     self.name = "omniglot_basic-VAT"
     self.model_class = "basic-VAT"
-    self.VAT_weight = 1.0
+    self.VAT_step_size = 1.0
+    self.labeled_weight = 0.2
 
 @RegisterConfig("omniglot", "basic-VAT-ENT")
 class BasicVAT_ENTConfig(BasicVATConfig):
@@ -105,7 +106,8 @@ class BasicVAT_ENTConfig(BasicVATConfig):
     super(BasicVAT_ENTConfig, self).__init__()
     self.name = "omniglot_basic-VAT-ENT"
     self.model_class = "basic-VAT-ENT"
-    self.ENT_weight = 5.0
+    self.ENT_weight = 1.0
+    self.VAT_ENT_step_size = 1.2
     self.max_train_steps = 30000
 
 @RegisterConfig("omniglot", "basic-VAT-prototypes")
@@ -147,6 +149,16 @@ class KMeansRefineConfig(BasicConfig):
     self.num_cluster_steps = 1
 
 
+@RegisterConfig("omniglot", "kmeans-refine-VAT-ENT")
+class KMeansRefineVAT_ENTConfig(BasicVAT_ENTConfig):
+
+  def __init__(self):
+    super(KMeansRefineVAT_ENTConfig, self).__init__()
+    self.name = "omniglot_kmeans-refine-VAT-ENT"
+    self.model_class = "kmeans-refine-VAT-ENT"
+    self.num_cluster_steps = 1
+
+
 @RegisterConfig("omniglot", "kmeans-refine-test")
 class KMeansRefineTestConfig(KMeansRefineConfig):
 
@@ -163,13 +175,20 @@ class KMeansRefineTestConfig(KMeansRefineConfig):
 
 
 @RegisterConfig("omniglot", "kmeans-refine-radius")
-class KMeansRefineRadiusConfig(BasicConfig):
+class KMeansRefineRadiusConfig(BasicVAT_ENTConfig):
 
   def __init__(self):
     super(KMeansRefineRadiusConfig, self).__init__()
     self.name = "omniglot_kmeans-refine-radius"
     self.model_class = "kmeans-refine-radius"
     self.num_cluster_steps = 1
+
+@RegisterConfig("omniglot", "kmeans-radius")
+class KMeansRadiusConfig(KMeansRefineRadiusConfig):
+  def __init__(self):
+    super().__init__()
+    self.name = "omniglot_kmeans-radius"
+    self.model_class = "kmeans-radius"
 
 
 @RegisterConfig("omniglot", "kmeans-refine-radius-test")
@@ -240,3 +259,22 @@ class PersistentSSLConfig(BasicConfig):
     self.classification_weight = 0.005
     self.VAT_weight = 1.0
     self.ENT_weight = 1.0
+
+
+@RegisterConfig("omniglot", "basic-pairwise")
+class PairwiseConfig(BasicConfig):
+
+  def __init__(self):
+    super().__init__()
+    self.name = "omniglot_basic_pairwise"
+    self.model_class = "basic-pairwise"
+
+
+@RegisterConfig("omniglot", "pairwise-VAT-ENT")
+class PairwiseVAT_ENTConfig(BasicVATConfig):
+  def __init__(self):
+    super(PairwiseVAT_ENTConfig, self).__init__()
+    self.name = "omniglot_pairwise-VAT-ENT"
+    self.model_class = "pairwise-VAT-ENT"
+    self.ENT_weight = 0.5
+    self.max_train_steps = 30000

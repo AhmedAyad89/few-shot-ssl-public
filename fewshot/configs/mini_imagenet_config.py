@@ -130,3 +130,13 @@ class RefineVATPrototypes(BasicVAT):
     self.inference_step_size = 0.005
     self.num_steps = 10
     self.VAT_eps = 4.0
+    
+    
+@RegisterConfig("mini-imagenet", "pairwise-VAT-ENT")
+class PairwiseVAT_ENTConfig(BasicVAT):
+  def __init__(self):
+    super(PairwiseVAT_ENTConfig, self).__init__()
+    self.name = "mini-imagenet_pairwise-VAT-ENT"
+    self.model_class = "pairwise-VAT-ENT"
+    self.ENT_weight = 0.5
+    self.max_train_steps = 30000

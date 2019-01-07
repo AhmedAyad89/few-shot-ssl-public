@@ -21,22 +21,24 @@ log = logger.get()
 @RegisterModel("basic-VAT-ENT")
 class BasicModelVAT_ENT(BasicModelVAT):
 	def get_train_op(self, logits, y_test):
-		loss, train_op = super().get_train_op(logits, y_test)
+		loss, train_op = BasicModelVAT.get_train_op(self, logits, y_test)
 		config = self.config
 		ENT_weight = config.ENT_weight
+		VAT_ENT_step_size = config.VAT_ENT_step_size
 
+		logits = self._unlabel_logits
+		ENT_loss = walking_penalty(logits)
+		loss += ENT_weight * ENT_loss
 
-		logits = tf.expand_dims(self._unlabel_logits,0)
-		logits = tf.concat([logits, self.logits[0]], 1)
-		# logits  = tf.Print(logits, [ tf.shape(self.logits)], summarize=50)
-		ENT_loss = 0.8 * entropy_y_x(logits) + (0.2 * entropy_y_x(self._unlabel_logits))
-		# ENT_loss = tf.Print(ENT_loss, [ENT_loss], '\n----------------\n')
-		ENT_opt = tf.train.AdamOptimizer(ENT_weight * self.learn_rate, name="Entropy-optimizer")
-		ENT_grads_and_vars = ENT_opt.compute_gradients(ENT_loss)
-		ENT_train_op = ENT_opt.apply_gradients(ENT_grads_and_vars)
+		ENT_opt = tf.train.AdamOptimizer(VAT_ENT_step_size * self.learn_rate, name="Entropy-optimizer")
+		ENT_grads_and_vars = ENT_opt.compute_gradients(loss)
+		train_op = ENT_opt.apply_gradients(ENT_grads_and_vars)
 
-		loss += ENT_loss
-		train_op = tf.group(train_op, ENT_train_op)
+		for gradient, variable in ENT_grads_and_vars:
+			if gradient is None:
+				gradient = tf.constant(0.0)
+			self.adv_summaries.append(tf.summary.scalar("ENT/gradients/" + variable.name, l2_norm(gradient), family="Grads"))
+			self.adv_summaries.append(tf.summary.histogram("ENT/gradients/" + variable.name, gradient, family="Grads"))
 
 		self.summaries.append(tf.summary.scalar('entropy loss', ENT_loss))
 

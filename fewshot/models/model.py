@@ -175,6 +175,7 @@ class Model(object):
       for kk in range(nclasses):
         # [B, N, 1]
         ksel = tf.expand_dims(tf.cast(tf.equal(y_train, kk), h_train.dtype), 2)
+        # ksel = tf.Print(ksel, [h_train * ksel, tf.shape(ksel[:,:,0]), tf.shape(tf.boolean_mask(h_train, ksel[:,:,0]))])
         # [B, N, D]
         protos[kk] = tf.reduce_sum(h_train * ksel, [1], keep_dims=True)
         protos[kk] /= tf.reduce_sum(ksel, [1, 2], keep_dims=True)
@@ -191,6 +192,7 @@ class Model(object):
   def compute_output(self):
     # Evaluation.
     logits = self.logits[-1]
+
     if self.nway > 1:
       self._prediction = tf.nn.softmax(logits)
       self._correct = tf.equal(tf.argmax(self.prediction, axis=2), self.y_test)

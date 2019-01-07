@@ -37,19 +37,22 @@ class ModelVAT(RefineModel):
 	def get_train_op(self, logits, y_test):
 		loss, train_op = super().get_train_op(logits, y_test)
 		config = self.config
-		VAT_weight = config.VAT_weight
-
+		VAT_step_size = config.VAT_step_size
+		labeled_weight = config.labeled_weight
 		with tf.control_dependencies([self.protos]):
 			labeled_flat = tf.reshape(self.x_test, [-1, config.height, config.width, config.num_channel])
-			label_logits = tf.squeeze(self.logits)
-			data = tf.concat([self.x_unlabel_flat, labeled_flat], 0)
-			logits = tf.concat([self._unlabel_logits, label_logits],0)
+			labeled_logits = tf.squeeze(self.logits)
 
-			vat_loss =self.virtual_adversarial_loss(data, logits)
+			weights = tf.nn.softmax(logits, 0)
+			weights = tf.reduce_sum(weights, 1)
+			weights = weights / tf.reduce_sum(weights)
+			self.adv_summaries.append(tf.summary.histogram('unlabel weights', weights))
 
-			# vat_loss =self.virtual_adversarial_loss(self.x_unlabel_flat, self._unlabel_logits)
+			vat_loss = self.virtual_adversarial_loss(self.x_unlabel_flat, self._unlabel_logits) \
+							 + labeled_weight * self.virtual_adversarial_loss(labeled_flat, labeled_logits)
 
-		vat_opt = tf.train.AdamOptimizer(VAT_weight * self.learn_rate, name="VAT_optimizer")
+
+		vat_opt = tf.train.AdamOptimizer(VAT_step_size * self.learn_rate, name="VAT_optimizer")
 		vat_grads_and_vars = vat_opt.compute_gradients(vat_loss)
 		vat_train_op = vat_opt.apply_gradients(vat_grads_and_vars)
 
@@ -84,14 +87,16 @@ class ModelVAT(RefineModel):
 				d = tf.stop_gradient(grad)
 			return FLAGS.VAT_epsilon * get_normalized_vector(d)
 
-	def virtual_adversarial_loss(self, x, logit, is_training=True, name="vat_loss"):
+	def virtual_adversarial_loss(self, x, logit, is_training=True, name="vat_loss", weights=None):
 		with tf.name_scope('VAT'):
 			shape = self.get_VAT_shape()
 			r_vadv = self.generate_virtual_adversarial_perturbation(x, logit, shape=shape, is_training=is_training)
 			logit = tf.stop_gradient(logit)
 			logit_p = logit
 			logit_m = self.noisy_forward(x, r_vadv)
-			loss = kl_divergence_with_logit(logit_p, logit_m)# + (0.2 * entropy_y_x(tf.expand_dims(logit_m, 0)))
+			loss = kl_divergence_with_logit(logit_p, logit_m, weights)
+
+
 			self.summaries.append(tf.summary.scalar('kl-loss',loss))
 		return tf.identity(loss, name=name)
 
