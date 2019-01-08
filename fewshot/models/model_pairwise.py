@@ -48,9 +48,19 @@ class PairwiseModel(RefineModel):
 			return protos
 
 @RegisterModel("pairwise-VAT-ENT")
-class PairwiseModelVAT_ENT(BasicModelVAT_ENT, PairwiseModel):
+class PairwiseModelVAT_ENT(BasicModelVAT_ENT):
 	def get_train_op(self, logits, y_test):
-		BasicModelVAT_ENT.get_train_op(self, logits, y_test)
+		loss, train_op = BasicModelVAT_ENT.get_train_op(self, logits, y_test)
+		return loss, train_op
 
 	def _compute_protos(self, nclasses, h_train, y_train):
-		PairwiseModel._compute_protos(self, nclasses, h_train, y_train)
+		num_points = self.nshot
+		with tf.name_scope('Compute-protos'):
+			protos = [None] * nclasses
+			for kk in range(nclasses):
+				# [B, N, 1]
+				ksel = tf.expand_dims(tf.cast(tf.equal(y_train, kk), h_train.dtype), 2)
+				protos[kk] = construct_proto(tf.boolean_mask(h_train, ksel[:,:,0]), num_points)
+			protos = concat(protos, 1)  # [B, K, D]
+
+			return protos

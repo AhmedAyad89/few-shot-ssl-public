@@ -106,7 +106,8 @@ class BasicVAT(BasicConfig):
     super(BasicVAT, self).__init__()
     self.name = "mini-imagenet_basic-VAT"
     self.model_class = "basic-VAT"
-    self.VAT_weight = 0.7
+    self.VAT_step_size = 1.0
+    self.labeled_weight = 0.2
 
 @RegisterConfig("mini-imagenet", "basic-VAT-ENT")
 class BasicVAT_ENTConfig(BasicVAT):
@@ -115,6 +116,7 @@ class BasicVAT_ENTConfig(BasicVAT):
     self.name = "mini-imagenet_basic-VAT-ENT"
     self.model_class = "basic-VAT-ENT"
     self.ENT_weight = 1.0
+    self.VAT_ENT_step_size = 2.0
     self.max_train_steps = 150000
 
 
@@ -133,10 +135,18 @@ class RefineVATPrototypes(BasicVAT):
     
     
 @RegisterConfig("mini-imagenet", "pairwise-VAT-ENT")
-class PairwiseVAT_ENTConfig(BasicVAT):
+class PairwiseVAT_ENTConfig(BasicVAT_ENTConfig):
   def __init__(self):
-    super(PairwiseVAT_ENTConfig, self).__init__()
+    super().__init__()
     self.name = "mini-imagenet_pairwise-VAT-ENT"
     self.model_class = "pairwise-VAT-ENT"
-    self.ENT_weight = 0.5
-    self.max_train_steps = 30000
+    self.max_train_steps = 100000
+
+
+@RegisterConfig("mini-imagenet", "basic-pairwise")
+class PairwiseVAT_ENTConfig(BasicConfig):
+  def __init__(self):
+    super().__init__()
+    self.name = "mini-imagenet_basic-pairwise"
+    self.model_class = "basic-pairwise"
+    self.max_train_steps = 100000
