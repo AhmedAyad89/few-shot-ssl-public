@@ -144,7 +144,7 @@ class PairwiseVAT_ENTConfig(BasicVAT_ENTConfig):
 
 
 @RegisterConfig("mini-imagenet", "basic-pairwise")
-class PairwiseVAT_ENTConfig(BasicConfig):
+class PairwiseConfig(BasicConfig):
   def __init__(self):
     super().__init__()
     self.name = "mini-imagenet_basic-pairwise"
